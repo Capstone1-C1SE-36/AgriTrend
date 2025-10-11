@@ -86,9 +86,9 @@
 
 ---
 
-### Có 2 cách chạy dự án
+# Có 2 cách chạy dự án
 
-### Cách 1
+# Cách 1
 ### 🪜 Bước 1: Clone hoặc Tải Dự Án
 ```bash
 git clone <your-repo-url>
@@ -103,38 +103,45 @@ npm install
 - (hoặc nếu muốn cài riêng: cd backend && npm install, rồi cd ../frontend && npm install)
 
 ### 🪜 Bước 3: Cấu Hình Môi Trường
+
 - 📁 Backend
 - cd backend
 - cp .env.example .env
-
 - Chỉnh sửa .env:
-\`\`\`bash
+```bash
 PORT=5000
 JWT_SECRET=your-super-secret-jwt-key
+```
 
 - 📁 Frontend
 - cd ../frontend
 - cp .env.example .env
-
 - Trong .env:
-\`\`\`bash
+```bash
 VITE_API_URL=http://localhost:5000/api
+```
 
-### Chạy Dự Án
+# Chạy Dự Án
 ### Cách 1 – Chạy từng phần
 
 ### Backend:
 cd backend
+```bash
 npm run dev
+```
 # http://localhost:5000
 
 ### Frontend:
 cd frontend
+```bash
 npm run dev
+```
 # http://localhost:3000
 
 ### Cách 2 – Chạy cả hai cùng lúc (từ thư mục gốc)
+```bash
 npm run dev
+```
 
 - Lệnh này dùng package concurrently để chạy:
 npm run dev --prefix backend
@@ -142,7 +149,7 @@ npm run dev --prefix frontend
 
 ---
 
-### Cách 2
+# Cách 2
 ### Bước 1: Clone hoặc Download Project
 
 \`\`\`bash
@@ -223,7 +230,9 @@ Hệ thống sử dụng dữ liệu mẫu trong memory, bạn có thể đăng 
 Mở terminal tại thư mục chứa file hash.js (ở đây là routes).
 cd .\apps\backend\routes\    
 chạy lệnh sau để sinh ra mk test
+```bash
 node hash.js
+```
 
 Mở file auth.js thay đổi password để sử dụng
 
