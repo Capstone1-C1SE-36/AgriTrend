@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import api from "@/lib/api"
 import LivePriceTicker from "@/components/live-price-ticker"
+import PriceCard from "@/components/PriceCard"
 
 export default function Dashboard() {
   const [products, setProducts] = useState([])
@@ -24,14 +25,32 @@ export default function Dashboard() {
 
   const fetchProducts = async () => {
     try {
+      // Lấy danh sách sản phẩm
       const response = await api.get("/products")
-      setProducts(response.data)
+      const allProducts = response.data
+
+      // Lấy danh sách yêu thích của user (mảng ID)
+      const favResponse = await api.get("/favorites")
+      const favoriteIds = favResponse.data
+
+      // Gộp lại: thêm isFavorite = true nếu id nằm trong favoriteIds
+      const merged = allProducts.map(p => ({
+        ...p,
+        isFavorite: favoriteIds.includes(p.id),
+      }))
+
+      setProducts(merged)
+      console.log("✅ API /products response:", response.data)
+      console.log(" Products loaded:", merged)
+      console.log(" Products favoriteIds:", favoriteIds)
+
     } catch (error) {
       console.error("Failed to fetch products:", error)
     } finally {
       setLoading(false)
     }
   }
+
 
   // ✅ Lọc sản phẩm theo từ khóa và danh mục
   const filteredProducts = products.filter((p) => {
@@ -50,7 +69,6 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Giá nông sản hôm nay</h1>
           <p className="text-gray-600">Cập nhật giá thời gian thực từ các khu vực trên toàn quốc</p>
         </div>
-
 
         <Card className="mb-8">
           <CardContent className="pt-6">
@@ -88,52 +106,7 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
-              <Link
-                key={product.id}
-                to={`/product/${product.id}`}
-                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-200"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{product.name}</h3>
-                    <p className="text-sm text-gray-500">{product.category}</p>
-                  </div>
-                  <button className="text-gray-400 hover:text-red-500 transition-colors">
-                    <Heart className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-gray-900">
-                      {product.currentPrice.toLocaleString("vi-VN")}
-                    </span>
-                    <span className="text-gray-500">đ/{product.unit}</span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    {product.change > 0 ? (
-                      <>
-                        <TrendingUp className="w-4 h-4 text-green-600" />
-                        <span className="text-sm font-medium text-green-600">+{product.change}%</span>
-                      </>
-                    ) : product.change < 0 ? (
-                      <>
-                        <TrendingDown className="w-4 h-4 text-red-600" />
-                        <span className="text-sm font-medium text-red-600">{product.change}%</span>
-                      </>
-                    ) : (
-                      <span className="text-sm text-gray-500">Không đổi</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="text-sm text-gray-600">
-                  <p>Khu vực: {product.region}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Cập nhật: {new Date(product.lastUpdated).toLocaleString("vi-VN")}
-                  </p>
-                </div>
-              </Link>
+              <PriceCard key={product.id} item={product} />
             ))}
           </div>
         )}

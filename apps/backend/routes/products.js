@@ -7,14 +7,15 @@ const router = express.Router()
 const products = [
   {
     id: 1,
-    name: "Gạo ST25",
+    name: "Lúa Gạo ST25",
     category: "Lúa gạo",
-    currentPrice: 18500,
-    previousPrice: 18000,
-    change: 2.78,
+    currentPrice: 8500,
+    previousPrice: 8200,
     unit: "kg",
     region: "Đồng bằng sông Cửu Long",
-    lastUpdated: new Date().toISOString(),
+    lastUpdate: "2025-09-10T13:42:00Z",
+    isFavorite: false,
+    trend: "up",
   },
   {
     id: 2,
@@ -22,43 +23,47 @@ const products = [
     category: "Cà phê",
     currentPrice: 52000,
     previousPrice: 53500,
-    change: -2.8,
     unit: "kg",
     region: "Tây Nguyên",
-    lastUpdated: new Date().toISOString(),
+    lastUpdate: "2025-09-10T13:42:00Z",
+    isFavorite: false,
+    trend: "down",
   },
   {
     id: 3,
-    name: "Tiêu đen",
+    name: "Tiêu Đen",
     category: "Gia vị",
     currentPrice: 125000,
     previousPrice: 120000,
-    change: 4.17,
     unit: "kg",
     region: "Đông Nam Bộ",
-    lastUpdated: new Date().toISOString(),
+    lastUpdate: "2025-09-10T13:42:00Z",
+    isFavorite: false,
+    trend: "up",
   },
   {
     id: 4,
-    name: "Cao su",
+    name: "Cao Su",
     category: "Công nghiệp",
     currentPrice: 38000,
     previousPrice: 38000,
-    change: 0,
     unit: "kg",
     region: "Đông Nam Bộ",
-    lastUpdated: new Date().toISOString(),
+    lastUpdate: "2025-09-10T13:42:00Z",
+    isFavorite: false,
+    trend: "neutral",
   },
   {
     id: 5,
-    name: "Cao",
-    category: "Công nghiệp",
-    currentPrice: 38000,
-    previousPrice: 38000,
-    change: 0,
+    name: "Ngô Vàng",
+    category: "Ngũ cốc",
+    currentPrice: 9500,
+    previousPrice: 9100,
     unit: "kg",
-    region: "Đông Nam Bộ",
-    lastUpdated: new Date().toISOString(),
+    region: "Miền Bắc",
+    lastUpdate: "2025-09-10T13:42:00Z",
+    isFavorite: false,
+    trend: "up",
   },
 ]
 
@@ -105,7 +110,7 @@ router.post("/", authenticateToken, isAdmin, (req, res) => {
   const newProduct = {
     id: products.length + 1,
     ...req.body,
-    lastUpdated: new Date().toISOString(),
+    lastUpdate: new Date().toISOString(),
   }
 
   products.push(newProduct)
@@ -123,7 +128,7 @@ router.put("/:id", authenticateToken, isAdmin, (req, res) => {
   products[index] = {
     ...products[index],
     ...req.body,
-    lastUpdated: new Date().toISOString(),
+    lastUpdate: new Date().toISOString(),
   }
 
   res.json(products[index])

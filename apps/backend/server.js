@@ -7,6 +7,7 @@ import userRoutes from "./routes/users.js";
 import alertRoutes from "./routes/alerts.js";
 import newsRoutes from "./routes/news.js";
 import communityRoutes from "./routes/community.js";
+import favoritesRouter from "./routes/favorites.js"
 
 // Load biến môi trường từ file .env
 dotenv.config();
@@ -29,6 +30,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/community", communityRoutes);
+app.use("/api/favorites", favoritesRouter)
 
 // Health check route
 app.get("/api/health", (req, res) => {
