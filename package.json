@@ -1,0 +1,10 @@
+{
+  "name": "agricultural-price-tracker",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix apps/backend\" \"npm run dev --prefix apps/frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
