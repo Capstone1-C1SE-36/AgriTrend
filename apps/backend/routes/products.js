@@ -146,4 +146,18 @@ router.delete("/:id", authenticateToken, isAdmin, (req, res) => {
   res.json({ message: "Product deleted successfully" })
 })
 
+// Update product price only
+router.patch("/:id/price", (req, res) => {
+  const product = products.find(p => p.id === Number.parseInt(req.params.id))
+  if (!product) return res.status(404).json({ error: "Product not found" })
+
+  const { newPrice } = req.body
+  product.previousPrice = product.currentPrice
+  product.currentPrice = newPrice
+  product.lastUpdate = new Date().toISOString()
+
+  res.json(product)
+})
+
+
 export default router

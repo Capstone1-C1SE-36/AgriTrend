@@ -24,6 +24,9 @@ import AdminNews from "./pages/admin/News"
 import AdminStatistics from "./pages/admin/Statistics"
 import AdminSettings from "./pages/admin/Settings"
 
+//chatbot
+import ChatBotWidget from "./components/ChatBotWidget"
+
 function App() {
   return (
     <AuthProvider>
@@ -143,6 +146,7 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ChatBotWidget />
     </AuthProvider>
   )
 }

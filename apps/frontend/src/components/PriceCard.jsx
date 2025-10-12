@@ -11,6 +11,15 @@ export default function PriceCard({ item }) {
     const [isUpdating, setIsUpdating] = useState(false)
     const [isFavorite, setIsFavorite] = useState(item.isFavorite)
 
+    const updatePrice = async (newPrice) => {
+        try {
+            await api.patch(`/products/${item.id}/price`, { newPrice })
+        } catch (error) {
+            console.error("Failed to update price:", error)
+        }
+    }
+
+
     // Hiệu ứng mô phỏng cập nhật giá ngẫu nhiên
     useEffect(() => {
         const interval = setInterval(() => {
@@ -19,6 +28,7 @@ export default function PriceCard({ item }) {
                 const change = (Math.random() - 0.5) * 0.05
                 const newPrice = Math.max(100, currentPrice + currentPrice * change)
                 setCurrentPrice(Math.round(newPrice))
+                updatePrice(Math.round(newPrice))
                 setTimeout(() => setIsUpdating(false), 1000)
             }
         }, 5000)

@@ -28,10 +28,20 @@ export default function Dashboard() {
       // Lấy danh sách sản phẩm
       const response = await api.get("/products")
       const allProducts = response.data
+      console.log("✅ API /products response:", response.data)
 
-      // Lấy danh sách yêu thích của user (mảng ID)
-      const favResponse = await api.get("/favorites")
-      const favoriteIds = favResponse.data
+      // 2️⃣ Nếu có token thì mới gọi /favorites
+      const token = localStorage.getItem("token")
+      let favoriteIds = []
+
+      if (token) {
+        try {
+          const favResponse = await api.get("/favorites")
+          favoriteIds = favResponse.data
+        } catch (err) {
+          console.warn("⚠️ Không thể tải danh sách yêu thích:", err)
+        }
+      }
 
       // Gộp lại: thêm isFavorite = true nếu id nằm trong favoriteIds
       const merged = allProducts.map(p => ({
@@ -40,9 +50,7 @@ export default function Dashboard() {
       }))
 
       setProducts(merged)
-      console.log("✅ API /products response:", response.data)
       console.log(" Products loaded:", merged)
-      console.log(" Products favoriteIds:", favoriteIds)
 
     } catch (error) {
       console.error("Failed to fetch products:", error)
