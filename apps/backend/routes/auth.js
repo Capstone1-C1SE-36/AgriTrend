@@ -1,92 +1,77 @@
 import express from "express"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
+import pool from "../db.js"
 
 const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
 
-// Mock users database
-const users = [
-  {
-    id: 1,
-    email: "admin@agriprice.vn",
-    password: "$2a$10$T29JR61meNJ4J.rApPd4Gut9qzdrLBdXHeKGeAP0jlzeHWM.RYEOG", // "admin123"
-    name: "Quản Trị Viên",
-    role: "admin",
-  },
-  {
-    id: 2,
-    email: "user@example.com",
-    password: "$2a$10$CDKHxesW0.zpHa/KYQsOG.xgbkVkhD0WJJmyr4ZNwrBSNqPgSWHh6", // "user123"
-    name: "Người Dùng",
-    role: "user",
-  },
-]
-
-// Register
+// 🧩 Đăng ký tài khoản
 router.post("/register", async (req, res) => {
   try {
     const { email, password, name } = req.body
 
-    // Check if user exists
-    const existingUser = users.find((u) => u.email === email)
-    if (existingUser) {
-      return res.status(400).json({ error: "Email already registered" })
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: "Thiếu thông tin đăng ký" })
     }
 
-    // Hash password
+    // Kiểm tra email tồn tại
+    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email])
+    if (rows.length > 0) {
+      return res.status(400).json({ error: "Email đã được sử dụng" })
+    }
+
+    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Create new user
+    // Thêm user mới vào DB
+    const [result] = await pool.query(
+      "INSERT INTO users (name, email, password, role, status, joinDate) VALUES (?, ?, ?, 'user', 'active', CURDATE())",
+      [name, email, hashedPassword]
+    )
+
     const newUser = {
-      id: users.length + 1,
+      id: result.insertId,
       email,
-      password: hashedPassword,
       name,
       role: "user",
     }
 
-    users.push(newUser)
+    // Tạo token JWT
+    const token = jwt.sign(newUser, JWT_SECRET, { expiresIn: "1h" })
 
-    // Generate token
-    const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role }, JWT_SECRET, {
-      expiresIn: "7d",
-    })
-
-    res.status(201).json({
-      token,
-      user: {
-        id: newUser.id,
-        email: newUser.email,
-        name: newUser.name,
-        role: newUser.role,
-      },
-    })
+    res.status(201).json({ token, user: newUser })
   } catch (error) {
-    res.status(500).json({ error: "Registration failed" })
+    console.error("❌ Lỗi khi đăng ký:", error)
+    res.status(500).json({ error: "Đăng ký thất bại" })
   }
 })
 
-// Login
+// 🧩 Đăng nhập
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body
 
-    // Find user
-    const user = users.find((u) => u.email === email)
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" })
+    // Kiểm tra user có tồn tại
+    const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email])
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng" })
     }
 
-    // Compare passwords
+    const user = rows[0]
+
+    // So sánh mật khẩu
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
-      return res.status(401).json({ error: "Invalid credentials" })
+      return res.status(401).json({ error: "Sai mật khẩu" })
     }
 
-    // Generate token
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "7d" })
+    // Tạo token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    )
 
     res.json({
       token,
@@ -98,35 +83,30 @@ router.post("/login", async (req, res) => {
       },
     })
   } catch (error) {
-    res.status(500).json({ error: "Login failed" })
+    console.error("❌ Lỗi khi đăng nhập:", error)
+    res.status(500).json({ error: "Đăng nhập thất bại" })
   }
 })
 
-// Get current user
-router.get("/me", (req, res) => {
+// 🧩 Lấy thông tin user hiện tại
+router.get("/me", async (req, res) => {
   const authHeader = req.headers["authorization"]
   const token = authHeader && authHeader.split(" ")[1]
 
-  if (!token) {
-    return res.status(401).json({ error: "Not authenticated" })
-  }
+  if (!token) return res.status(401).json({ error: "Chưa đăng nhập" })
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET)
-    const user = users.find((u) => u.id === decoded.id)
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" })
-    }
+    const [rows] = await pool.query("SELECT id, name, email, role, status, joinDate FROM users WHERE id = ?", [
+      decoded.id,
+    ])
 
-    res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    })
+    if (rows.length === 0) return res.status(404).json({ error: "Không tìm thấy người dùng" })
+
+    res.json(rows[0])
   } catch (error) {
-    res.status(403).json({ error: "Invalid token" })
+    res.status(403).json({ error: "Token không hợp lệ" })
   }
 })
 

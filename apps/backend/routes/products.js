@@ -1,163 +1,264 @@
 import express from "express"
+import pool from "../db.js"
 import { authenticateToken, isAdmin } from "../middleware/auth.js"
 
 const router = express.Router()
+export const ioRef = { io: null }
 
-// Mock products database
-const products = [
-  {
-    id: 1,
-    name: "Lúa Gạo ST25",
-    category: "Lúa gạo",
-    currentPrice: 8500,
-    previousPrice: 8200,
-    unit: "kg",
-    region: "Đồng bằng sông Cửu Long",
-    lastUpdate: "2025-09-10T13:42:00Z",
-    isFavorite: false,
-    trend: "up",
-  },
-  {
-    id: 2,
-    name: "Cà phê Robusta",
-    category: "Cà phê",
-    currentPrice: 52000,
-    previousPrice: 53500,
-    unit: "kg",
-    region: "Tây Nguyên",
-    lastUpdate: "2025-09-10T13:42:00Z",
-    isFavorite: false,
-    trend: "down",
-  },
-  {
-    id: 3,
-    name: "Tiêu Đen",
-    category: "Gia vị",
-    currentPrice: 125000,
-    previousPrice: 120000,
-    unit: "kg",
-    region: "Đông Nam Bộ",
-    lastUpdate: "2025-09-10T13:42:00Z",
-    isFavorite: false,
-    trend: "up",
-  },
-  {
-    id: 4,
-    name: "Cao Su",
-    category: "Công nghiệp",
-    currentPrice: 38000,
-    previousPrice: 38000,
-    unit: "kg",
-    region: "Đông Nam Bộ",
-    lastUpdate: "2025-09-10T13:42:00Z",
-    isFavorite: false,
-    trend: "neutral",
-  },
-  {
-    id: 5,
-    name: "Ngô Vàng",
-    category: "Ngũ cốc",
-    currentPrice: 9500,
-    previousPrice: 9100,
-    unit: "kg",
-    region: "Miền Bắc",
-    lastUpdate: "2025-09-10T13:42:00Z",
-    isFavorite: false,
-    trend: "up",
-  },
-]
+// 🧩 Lấy tất cả sản phẩm (có thể lọc search, category, region)
+router.get("/", async (req, res) => {
+  try {
+    const { search, category, region } = req.query
+    let query = "SELECT * FROM products WHERE 1=1"
+    const params = []
 
-// Get all products
-router.get("/", (req, res) => {
-  const { search, category, region } = req.query
+    if (search) {
+      query += " AND name LIKE ?"
+      params.push(`%${search}%`)
+    }
+    if (category) {
+      query += " AND category = ?"
+      params.push(category)
+    }
+    if (region) {
+      query += " AND region = ?"
+      params.push(region)
+    }
 
-  let filtered = [...products]
+    const [rows] = await pool.query(query, params)
+    const products = rows.map(p => ({
+      ...p,
+      currentPrice: Number(p.currentPrice),
+      previousPrice: Number(p.previousPrice),
+    }))
 
-  if (search) {
-    filtered = filtered.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    res.json(products)
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
   }
-
-  if (category) {
-    filtered = filtered.filter((p) => p.category === category)
-  }
-
-  if (region) {
-    filtered = filtered.filter((p) => p.region === region)
-  }
-
-  res.json(filtered)
 })
 
-// Get product by ID
-router.get("/:id", (req, res) => {
-  const product = products.find((p) => p.id === Number.parseInt(req.params.id))
+// 🧩 Lấy chi tiết 1 sản phẩm + lịch sử giá (theo thời gian tùy chọn)
+router.get("/:id", async (req, res) => {
+  try {
+    const range = req.query.range || "30d"
+    const [products] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
+    if (products.length === 0) return res.status(404).json({ error: "Không tìm thấy sản phẩm" })
 
-  if (!product) {
-    return res.status(404).json({ error: "Product not found" })
+    let historyQuery = ""
+    const params = [req.params.id]
+
+    if (range === "1d") {
+      historyQuery = `
+        SELECT price, updated_at AS date
+        FROM price_history
+        WHERE product_id = ?
+          AND DATE(updated_at) = CURDATE()
+        ORDER BY updated_at ASC
+      `
+    } else if (range === "30d") {
+      historyQuery = `
+        SELECT DATE(updated_at) AS date, MAX(price) AS price
+        FROM price_history
+        WHERE product_id = ?
+          AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY DATE(updated_at)
+        ORDER BY date ASC
+      `
+    } else if (range === "6m") {
+      historyQuery = `
+        SELECT DATE(updated_at) AS date, MAX(price) AS price
+        FROM price_history
+        WHERE product_id = ?
+          AND updated_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        GROUP BY DATE(updated_at)
+        ORDER BY date ASC
+      `
+    } else if (range === "1y") {
+      historyQuery = `
+        SELECT DATE(updated_at) AS date, MAX(price) AS price
+        FROM price_history
+        WHERE product_id = ?
+          AND updated_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)
+        GROUP BY DATE(updated_at)
+        ORDER BY date ASC
+      `
+    } else {
+      historyQuery = `
+        SELECT DATE(updated_at) AS date, MAX(price) AS price
+        FROM price_history
+        WHERE product_id = ?
+        GROUP BY DATE(updated_at)
+        ORDER BY date ASC
+      `
+    }
+
+    const [history] = await pool.query(historyQuery, params)
+    const product = {
+      ...products[0],
+      currentPrice: Number(products[0].currentPrice),
+      previousPrice: Number(products[0].previousPrice),
+    }
+
+    res.json({ ...product, history })
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy chi tiết sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
   }
-
-  // Generate mock price history
-  const history = Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString(),
-    price: product.currentPrice + Math.random() * 2000 - 1000,
-  }))
-
-  res.json({ ...product, history })
 })
 
-// Create product (Admin only)
-router.post("/", authenticateToken, isAdmin, (req, res) => {
-  const newProduct = {
-    id: products.length + 1,
-    ...req.body,
-    lastUpdate: new Date().toISOString(),
-  }
+// 🧩 Tạo sản phẩm mới (Admin)
+router.post("/", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { name, category, currentPrice, unit, region } = req.body
+    if (!name || !category || !currentPrice || !unit || !region) {
+      return res.status(400).json({ error: "Thiếu thông tin sản phẩm" })
+    }
 
-  products.push(newProduct)
-  res.status(201).json(newProduct)
+    const [result] = await pool.query(
+      `INSERT INTO products (name, category, currentPrice, previousPrice, unit, region, lastUpdate, trend)
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), 'stable')`,
+      [name, category, currentPrice, currentPrice, unit, region]
+    )
+
+    const [newProduct] = await pool.query("SELECT * FROM products WHERE id = ?", [result.insertId])
+    const product = {
+      ...newProduct[0],
+      currentPrice: Number(newProduct[0].currentPrice),
+      previousPrice: Number(newProduct[0].previousPrice),
+    }
+
+    await pool.query("INSERT INTO price_history (product_id, price) VALUES (?, ?)", [
+      result.insertId,
+      currentPrice,
+    ])
+
+    if (ioRef.io) ioRef.io.emit("productAdded", product)
+
+    res.status(201).json(product)
+  } catch (error) {
+    console.error("❌ Lỗi khi thêm sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
+  }
 })
 
-// Update product (Admin only)
-router.put("/:id", authenticateToken, isAdmin, (req, res) => {
-  const index = products.findIndex((p) => p.id === Number.parseInt(req.params.id))
+// 🧩 Cập nhật sản phẩm
+// 🧩 Cập nhật sản phẩm
+router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { name, category, currentPrice, unit, region } = req.body
 
-  if (index === -1) {
-    return res.status(404).json({ error: "Product not found" })
+    const [existing] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
+    if (existing.length === 0) return res.status(404).json({ error: "Không tìm thấy sản phẩm" })
+
+    const old = existing[0]
+    const trend =
+      currentPrice > old.currentPrice ? "up" : currentPrice < old.currentPrice ? "down" : "stable"
+
+    await pool.query(
+      `UPDATE products
+       SET name=?, category=?, currentPrice=?, previousPrice=?, unit=?, region=?, trend=?, lastUpdate=NOW()
+       WHERE id=?`,
+      [name, category, currentPrice, old.currentPrice, unit, region, trend, req.params.id]
+    )
+
+    await pool.query("INSERT INTO price_history (product_id, price) VALUES (?, ?)", [
+      req.params.id,
+      currentPrice,
+    ])
+
+    const [updated] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
+    const product = {
+      ...updated[0],
+      currentPrice: Number(updated[0].currentPrice),
+      previousPrice: Number(updated[0].previousPrice),
+    }
+
+    // ✅ Emit cả hai để đồng bộ toàn bộ client
+    if (ioRef.io) {
+      ioRef.io.emit("productUpdated", product)
+      ioRef.io.emit("priceUpdate", {
+        id: product.id,
+        newPrice: product.currentPrice,
+        previousPrice: product.previousPrice,
+      })
+    }
+
+    res.json(product)
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
   }
-
-  products[index] = {
-    ...products[index],
-    ...req.body,
-    lastUpdate: new Date().toISOString(),
-  }
-
-  res.json(products[index])
 })
 
-// Delete product (Admin only)
-router.delete("/:id", authenticateToken, isAdmin, (req, res) => {
-  const index = products.findIndex((p) => p.id === Number.parseInt(req.params.id))
 
-  if (index === -1) {
-    return res.status(404).json({ error: "Product not found" })
+// 🧩 Xóa sản phẩm
+router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const [exists] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
+    if (exists.length === 0) return res.status(404).json({ error: "Không tìm thấy sản phẩm" })
+
+    await pool.query("DELETE FROM products WHERE id = ?", [req.params.id])
+
+    if (ioRef.io) ioRef.io.emit("productDeleted", { id: Number(req.params.id) })
+
+    res.json({ message: "Đã xóa sản phẩm", deleted: exists[0] })
+  } catch (error) {
+    console.error("❌ Lỗi khi xóa sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
   }
-
-  products.splice(index, 1)
-  res.json({ message: "Product deleted successfully" })
 })
 
-// Update product price only
-router.patch("/:id/price", (req, res) => {
-  const product = products.find(p => p.id === Number.parseInt(req.params.id))
-  if (!product) return res.status(404).json({ error: "Product not found" })
+// 🧩 API cập nhật giá nhanh (chỉ admin)
+router.patch("/:id/price", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    console.log("📦 req.body:", req.body)
+    const { newPrice } = req.body
+    if (!newPrice) return res.status(400).json({ error: "Thiếu giá mới" })
 
-  const { newPrice } = req.body
-  product.previousPrice = product.currentPrice
-  product.currentPrice = newPrice
-  product.lastUpdate = new Date().toISOString()
+    const [rows] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
+    if (rows.length === 0) return res.status(404).json({ error: "Không tìm thấy sản phẩm" })
 
-  res.json(product)
+    const product = {
+      ...rows[0],
+      currentPrice: Number(rows[0].currentPrice),
+      previousPrice: Number(rows[0].previousPrice),
+    }
+
+    const trend =
+      newPrice > product.currentPrice ? "up" : newPrice < product.currentPrice ? "down" : "stable"
+
+    await pool.query(
+      `UPDATE products SET previousPrice=?, currentPrice=?, trend=?, lastUpdate=NOW() WHERE id=?`,
+      [product.currentPrice, newPrice, trend, req.params.id]
+    )
+
+    await pool.query("INSERT INTO price_history (product_id, price) VALUES (?, ?)", [
+      req.params.id,
+      newPrice,
+    ])
+
+    const [updated] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
+    const updatedProduct = {
+      ...updated[0],
+      currentPrice: Number(updated[0].currentPrice),
+      previousPrice: Number(updated[0].previousPrice),
+    }
+
+    if (ioRef.io)
+      ioRef.io.emit("priceUpdate", {
+        id: updatedProduct.id,
+        newPrice,
+        previousPrice: product.currentPrice,
+      })
+
+    console.log(`📢 Giá sản phẩm ${product.name} đã được cập nhật nhanh: ${newPrice}`)
+    res.json(updatedProduct)
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật giá:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
+  }
 })
-
 
 export default router

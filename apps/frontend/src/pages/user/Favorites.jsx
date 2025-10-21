@@ -23,12 +23,16 @@ export default function Favorites() {
         return
       }
 
+      // 🔧 Chuyển danh sách yêu thích từ object sang mảng số
+      const favIds = favoriteIds.map(f => f.productId)
+      console.log("✅ Favorite IDs:", favIds)
+
       // 🔹 Lấy danh sách sản phẩm từ /products
       const prodRes = await api.get("/products")
       const allProducts = prodRes.data
 
       // 🔹 Lọc ra những sản phẩm có id nằm trong danh sách yêu thích
-      const favProducts = allProducts.filter(p => favoriteIds.includes(p.id))
+      const favProducts = allProducts.filter(p => favIds.includes(p.id))
 
       // 🔹 Gắn cờ isFavorite: true để hiển thị tim đỏ
       const final = favProducts.map(p => ({ ...p, isFavorite: true }))

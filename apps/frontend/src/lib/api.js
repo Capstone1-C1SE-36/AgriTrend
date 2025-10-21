@@ -1,34 +1,48 @@
-import axios from "axios"
+import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-// Add token to requests
+// 🧠 Thêm token vào mỗi request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config
-})
+  return config;
+});
 
-// Handle auth errors
+// 🧩 Tự động logout khi token hết hạn hoặc không hợp lệ
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-      window.location.href = "/login"
-    }
-    return Promise.reject(error)
-  },
-)
+    const status = error.response?.status;
+    const message = error.response?.data?.error;
 
-export default api
+    // Nếu token hết hạn hoặc không hợp lệ
+    if (
+      status === 401 ||
+      status === 403 ||
+      message === "Invalid or expired token"
+    ) {
+      console.warn("⚠️ Token hết hạn hoặc không hợp lệ — đang đăng xuất...");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Tránh vòng lặp redirect
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default api;

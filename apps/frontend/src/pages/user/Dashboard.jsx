@@ -10,6 +10,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import api from "@/lib/api"
 import LivePriceTicker from "@/components/live-price-ticker"
 import PriceCard from "@/components/PriceCard"
+import { io } from "socket.io-client"
+
+const socket = io("http://localhost:5000")
 
 export default function Dashboard() {
   const [products, setProducts] = useState([])
@@ -21,6 +24,30 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchProducts()
+
+    // 👂 Nhận sản phẩm mới được thêm
+    socket.on("productAdded", (newProduct) => {
+      setProducts((prev) => [...prev, newProduct])
+    })
+
+    // 👂 Nhận sản phẩm bị xoá
+    socket.on("productDeleted", (deleted) => {
+      setProducts((prev) => prev.filter((p) => p.id !== deleted.id))
+    })
+
+    // 👂 Khi admin chỉnh sửa thông tin
+    // socket.on("productUpdated", (updated) => {
+    //   setProducts((prev) =>
+    //     prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+    //   )
+    // })
+
+    return () => {
+      socket.off("productAdded")
+      socket.off("productDeleted")
+      // socket.off("productUpdated")
+      // socket.disconnect()
+    }
   }, [])
 
   const fetchProducts = async () => {
@@ -30,6 +57,12 @@ export default function Dashboard() {
       const allProducts = response.data
       console.log("✅ API /products response:", response.data)
 
+      const test = await api.get("/test-db")
+      console.log("✅ API /test-db response:", test.data)
+
+      // Dữ liệu từ backend nằm ở response.data.data (vì backend trả { success, data })
+      const tests = test.data.data
+
       // 2️⃣ Nếu có token thì mới gọi /favorites
       const token = localStorage.getItem("token")
       let favoriteIds = []
@@ -38,19 +71,32 @@ export default function Dashboard() {
         try {
           const favResponse = await api.get("/favorites")
           favoriteIds = favResponse.data
+          console.log("❤️ API /favorites response:", favResponse.data)
         } catch (err) {
           console.warn("⚠️ Không thể tải danh sách yêu thích:", err)
         }
       }
 
-      // Gộp lại: thêm isFavorite = true nếu id nằm trong favoriteIds
-      const merged = allProducts.map(p => ({
-        ...p,
-        isFavorite: favoriteIds.includes(p.id),
-      }))
+      // 🔧 Chuyển danh sách yêu thích từ object sang mảng số
+      const favIds = favoriteIds.map(f => f.productId);
+
+      // 🔄 Gộp dữ liệu và đánh dấu sản phẩm yêu thích
+      const merged = allProducts.map(p => {
+        const id = p.id || p.productId;
+        return {
+          ...p,
+          id,
+          isFavorite: favIds.includes(id),
+        };
+      });
+
 
       setProducts(merged)
       console.log(" Products loaded:", merged)
+      console.log(" p loaded:", products)
+      console.log("❤️ Fav IDs:", favIds);
+      console.log("📦 Products merged:", merged);
+
 
     } catch (error) {
       console.error("Failed to fetch products:", error)

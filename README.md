@@ -109,8 +109,12 @@ npm install
 - cp .env.example .env
 - Chỉnh sửa .env:
 ```bash
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=12345
+DB_NAME=agrirend
 PORT=5000
-JWT_SECRET=your-super-secret-jwt-key
+JWT_SECRET=mysecretkey
 ```
 
 - 📁 Frontend

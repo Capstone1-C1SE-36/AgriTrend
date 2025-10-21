@@ -4,81 +4,102 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
+import { io } from "socket.io-client"
 import api from "@/lib/api"
+
+// ⚙️ Kết nối Socket.IO tới backend (chạy 1 lần toàn web)
+const socket = io("http://localhost:5000")
 
 export default function PriceCard({ item }) {
     const [currentPrice, setCurrentPrice] = useState(item.currentPrice)
+    const [previousPrice, setPreviousPrice] = useState(item.previousPrice)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isFavorite, setIsFavorite] = useState(item.isFavorite)
+    const [product, setProduct] = useState(item) // 🆕 giữ bản sao để cập nhật mọi field
 
-    const updatePrice = async (newPrice) => {
-        try {
-            await api.patch(`/products/${item.id}/price`, { newPrice })
-        } catch (error) {
-            console.error("Failed to update price:", error)
-        }
-    }
-
-
-    // Hiệu ứng mô phỏng cập nhật giá ngẫu nhiên
+    // ✅ Nhận cập nhật từ server (giá tự động hoặc admin sửa)
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (Math.random() < 0.15) {
+        const handleServerUpdate = (data) => {
+            if (data.id === item.id) {
                 setIsUpdating(true)
-                const change = (Math.random() - 0.5) * 0.05
-                const newPrice = Math.max(100, currentPrice + currentPrice * change)
-                setCurrentPrice(Math.round(newPrice))
-                updatePrice(Math.round(newPrice))
+
+                // Nếu có thay đổi giá → cập nhật giá
+                if (data.newPrice !== undefined) {
+                    setPreviousPrice(data.previousPrice ?? currentPrice)
+                    setCurrentPrice(data.newPrice)
+                }
+
+                // Nếu admin chỉnh sửa sản phẩm → cập nhật toàn bộ thông tin
+                setProduct((prev) => ({
+                    ...prev,
+                    name: data.name ?? prev.name,
+                    category: data.category ?? prev.category,
+                    unit: data.unit ?? prev.unit,
+                    region: data.region ?? prev.region,
+                }))
+
+                // 🔄 Tắt hiệu ứng highlight sau 1 giây
                 setTimeout(() => setIsUpdating(false), 1000)
             }
-        }, 5000)
+        }
 
-        return () => clearInterval(interval)
-    }, [currentPrice])
+        // 👂 Nghe cả 2 event từ server
+        socket.on("priceUpdate", handleServerUpdate)
+        socket.on("productUpdated", handleServerUpdate)
 
-    // Hàm toggle yêu thích
+        return () => {
+            socket.off("priceUpdate", handleServerUpdate)
+            socket.off("productUpdated", handleServerUpdate)
+        }
+    }, [item.id, currentPrice])
+
+    // ❤️ Toggle yêu thích
     const toggleFavorite = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-
         try {
-            await api.post(`/favorites/${item.id}`) // Gọi API backend
-            setIsFavorite(!isFavorite) // Đổi màu tim ngay lập tức
+            await api.post(`/favorites/${item.id}`)
+            setIsFavorite(!isFavorite)
         } catch (error) {
             console.error("Toggle favorite failed:", error)
         }
     }
 
-    // Tính phần trăm thay đổi giá
-    const priceChange = currentPrice - item.previousPrice
-    const percentChange = ((priceChange / item.previousPrice) * 100).toFixed(2)
+    // 📊 Tính phần trăm thay đổi giá
+    const priceChange = currentPrice - previousPrice
+    const percentChange =
+        previousPrice > 0 ? ((priceChange / previousPrice) * 100).toFixed(2) : 0
 
     const getTrendIcon = () => {
-        if (item.trend === "up") return <TrendingUp className="h-4 w-4" />
-        if (item.trend === "down") return <TrendingDown className="h-4 w-4" />
+        if (priceChange > 0) return <TrendingUp className="h-4 w-4" />
+        if (priceChange < 0) return <TrendingDown className="h-4 w-4" />
         return <Minus className="h-4 w-4" />
     }
 
     const getTrendColor = () => {
-        if (item.trend === "up") return "text-green-600"
-        if (item.trend === "down") return "text-red-600"
+        if (priceChange > 0) return "text-green-600"
+        if (priceChange < 0) return "text-red-600"
         return "text-gray-500"
     }
 
     return (
-        <Link to={`/product/${item.id}`} className="block">
+        <Link to={`/product/${product.id}`} className="block">
             <Card
-                className={`hover:shadow-md transition-all cursor-pointer ${isUpdating ? "ring-2 ring-green-400/50" : ""
+                className={`hover:shadow-md transition-all duration-500 ease-in-out cursor-pointer ${isUpdating
+                        ? priceChange > 0
+                            ? "ring-2 ring-green-400/50"
+                            : priceChange < 0
+                                ? "ring-2 ring-red-400/50"
+                                : "ring-2 ring-gray-300/50"
+                        : ""
                     }`}
             >
                 <CardContent className="pt-6">
                     <div className="space-y-3">
                         <div className="flex items-start justify-between">
                             <div className="flex-1">
-                                <h3 className="font-semibold text-gray-900 text-balance">
-                                    {item.name}
-                                </h3>
-                                <p className="text-sm text-gray-500">{item.category}</p>
+                                <h3 className="font-semibold text-gray-900">{product.name}</h3>
+                                <p className="text-sm text-gray-500">{product.category}</p>
                             </div>
                             <Button
                                 variant="ghost"
@@ -98,14 +119,18 @@ export default function PriceCard({ item }) {
                         <div className="space-y-1">
                             <div className="flex items-baseline gap-2">
                                 <span
-                                    className={`text-2xl font-bold text-gray-900 transition-all ${isUpdating ? "scale-110 text-green-600" : ""
+                                    className={`text-2xl font-bold transition-all duration-500 ${isUpdating
+                                        ? priceChange > 0
+                                            ? "scale-110 text-green-600"
+                                            : priceChange < 0
+                                                ? "scale-110 text-red-600"
+                                                : "text-gray-900"
+                                        : "text-gray-900"
                                         }`}
                                 >
                                     {currentPrice.toLocaleString("vi-VN")}
                                 </span>
-                                <span className="text-sm text-gray-500">
-                                    đ/{item.unit}
-                                </span>
+                                <span className="text-sm text-gray-500">đ/{product.unit}</span>
                             </div>
                             <div
                                 className={`flex items-center gap-1 text-sm font-medium ${getTrendColor()}`}
@@ -121,9 +146,11 @@ export default function PriceCard({ item }) {
                         {/* Footer */}
                         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                             <Badge variant="secondary" className="text-xs">
-                                {item.region}
+                                {product.region}
                             </Badge>
-                            <span className="text-xs text-gray-500">{item.lastUpdate}</span>
+                            <span className="text-xs text-gray-500">
+                                {new Date().toLocaleString("vi-VN")}
+                            </span>
                         </div>
                     </div>
                 </CardContent>
