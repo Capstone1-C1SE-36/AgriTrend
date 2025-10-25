@@ -5,7 +5,7 @@ import { authenticateToken, isAdmin } from "../middleware/auth.js"
 const router = express.Router()
 export const ioRef = { io: null }
 
-// 🧩 Lấy tất cả sản phẩm (có thể lọc search, category, region)
+// Lấy tất cả sản phẩm (có thể lọc search, category, region)
 router.get("/", async (req, res) => {
   try {
     const { search, category, region } = req.query
@@ -39,7 +39,38 @@ router.get("/", async (req, res) => {
   }
 })
 
-// 🧩 Lấy chi tiết 1 sản phẩm + lịch sử giá (theo thời gian tùy chọn)
+// API lấy dữ liệu cho LivePriceTicker
+router.get("/ticker", async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT id, name, currentPrice, previousPrice, trend 
+       FROM products 
+       ORDER BY RAND()
+       LIMIT 10`
+    )
+
+    const data = rows.map(p => {
+      const current = Number(p.currentPrice)
+      const previous = Number(p.previousPrice)
+      const change = previous ? ((current - previous) / previous) * 100 : 0
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: current,
+        change: Number(change.toFixed(1)),
+        trend: current > previous ? "up" : current < previous ? "down" : "stable",
+      }
+    })
+
+    res.json(data)
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy dữ liệu ticker:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
+  }
+})
+
+// Lấy chi tiết 1 sản phẩm + lịch sử giá (theo thời gian tùy chọn)
 router.get("/:id", async (req, res) => {
   try {
     const range = req.query.range || "30d"
@@ -108,7 +139,8 @@ router.get("/:id", async (req, res) => {
   }
 })
 
-// 🧩 Tạo sản phẩm mới (Admin)
+
+// Tạo sản phẩm mới (Admin)
 router.post("/", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { name, category, currentPrice, unit, region } = req.body
@@ -143,8 +175,7 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// 🧩 Cập nhật sản phẩm
-// 🧩 Cập nhật sản phẩm
+// Cập nhật sản phẩm
 router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { name, category, currentPrice, unit, region } = req.body
@@ -175,7 +206,7 @@ router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
       previousPrice: Number(updated[0].previousPrice),
     }
 
-    // ✅ Emit cả hai để đồng bộ toàn bộ client
+    // Emit cả hai để đồng bộ toàn bộ client
     if (ioRef.io) {
       ioRef.io.emit("productUpdated", product)
       ioRef.io.emit("priceUpdate", {
@@ -193,7 +224,7 @@ router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
 })
 
 
-// 🧩 Xóa sản phẩm
+// Xóa sản phẩm
 router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
   try {
     const [exists] = await pool.query("SELECT * FROM products WHERE id = ?", [req.params.id])
@@ -210,7 +241,7 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// 🧩 API cập nhật giá nhanh (chỉ admin)
+// API cập nhật giá nhanh (chỉ admin)
 router.patch("/:id/price", authenticateToken, isAdmin, async (req, res) => {
   try {
     console.log("📦 req.body:", req.body)

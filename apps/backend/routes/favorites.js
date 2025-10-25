@@ -4,7 +4,7 @@ import pool from "../db.js"
 
 const router = express.Router()
 
-// ✅ Lấy danh sách sản phẩm yêu thích của user hiện tại
+// Lấy danh sách sản phẩm yêu thích của user hiện tại
 router.get("/", authenticateToken, async (req, res) => {
     const userId = req.user.id
 
@@ -24,7 +24,7 @@ router.get("/", authenticateToken, async (req, res) => {
     }
 })
 
-// ✅ Thêm hoặc bỏ yêu thích (toggle)
+// Thêm hoặc bỏ yêu thích (toggle)
 router.post("/:productId", authenticateToken, async (req, res) => {
     const userId = req.user.id
     const productId = parseInt(req.params.productId)

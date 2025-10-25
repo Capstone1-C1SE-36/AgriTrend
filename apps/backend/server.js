@@ -29,7 +29,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Gán io cho router product để có thể emit event từ bên trong
+// Gán io cho router product để có thể emit event từ bên trong
 ioRef.io = io;
 
 // Routes
@@ -43,16 +43,16 @@ app.use("/api/favorites", favoritesRouter);
 app.use("/api/test", testRoutes);
 
 // Test DB
-app.get("/api/test-db", async (req, res) => {
-  try {
-    const [rows] = await pool.query("SELECT * FROM products");
-    res.json({ success: true, data: rows });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Database error" });
-  }
-});
+// app.get("/api/test-db", async (req, res) => {
+//   try {
+//     const [rows] = await pool.query("SELECT * FROM products");
+//     res.json({ success: true, data: rows });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: "Database error" });
+//   }
+// });
 
-// ⚡ Khi có client kết nối
+// Khi có client kết nối
 io.on("connection", async (socket) => {
   console.log("✅ Client connected:", socket.id);
 
@@ -72,7 +72,7 @@ io.on("connection", async (socket) => {
 });
 
 
-// ⚡ Mô phỏng cập nhật giá ngẫu nhiên (toàn hệ thống)
+// Mô phỏng cập nhật giá ngẫu nhiên (toàn hệ thống)
 // setInterval(async () => {
 //   try {
 //     // Lấy ngẫu nhiên 1 sản phẩm từ DB
@@ -107,7 +107,7 @@ io.on("connection", async (socket) => {
 
 
 
-// ✅ Start
+// Start
 const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {

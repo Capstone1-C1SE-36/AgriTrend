@@ -4,7 +4,37 @@ import pool from "../db.js"
 
 const router = express.Router()
 
-// 🧩 Lấy danh sách tất cả người dùng (Admin)
+// Người dùng tự cập nhật thông tin cá nhân
+router.put("/me", authenticateToken, async (req, res) => {
+  try {
+    console.log("📥 Dữ liệu nhận được:", req.body)
+    console.log("👤 User ID:", req.user.id)
+
+    const { name, avatar_url } = req.body
+    const [result] = await pool.query(
+      `UPDATE users SET 
+        name = COALESCE(?, name),
+        avatar_url = COALESCE(?, avatar_url)
+       WHERE id = ?`,
+      [name, avatar_url, req.user.id]
+    )
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Không tìm thấy người dùng để cập nhật" })
+    }
+
+    const [rows] = await pool.query(
+      "SELECT id, name, email, avatar_url FROM users WHERE id = ?",
+      [req.user.id]
+    )
+    res.json(rows[0])
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật user:", error)
+    res.status(500).json({ error: "Lỗi server khi cập nhật thông tin" })
+  }
+})
+
+// Lấy danh sách tất cả người dùng (Admin)
 router.get("/", authenticateToken, isAdmin, async (req, res) => {
   try {
     const [rows] = await pool.query("SELECT id, name, email, role, status, joinDate FROM users")
@@ -15,7 +45,7 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// 🧩 Cập nhật thông tin người dùng (Admin)
+// Cập nhật thông tin người dùng (Admin)
 router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
   const { name, email, role, status } = req.body
   const id = parseInt(req.params.id)
@@ -47,7 +77,7 @@ router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// 🗑️ Xóa người dùng (Admin)
+// Xóa người dùng (Admin)
 router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
   const id = parseInt(req.params.id)
 

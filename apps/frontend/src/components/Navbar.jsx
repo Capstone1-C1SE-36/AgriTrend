@@ -4,16 +4,32 @@ import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { Home, Heart, Bell, BarChart3, Users, User, LogOut, Menu, X } from "lucide-react"
 import { useState } from "react"
+import { useClerk } from "@clerk/clerk-react"
 
 export default function Navbar() {
   const { user, logout } = useAuth()
+  console.log("👤 Thông tin user hiện tại:", user)
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { signOut } = useClerk()
+  const handleLogout = async () => {
+    try {
+      // Nếu có Clerk session thì sign out cả Clerk
+      if (window.Clerk?.session) {
+        await window.Clerk.signOut()
+        console.log("✅ Clerk session signed out")
+      }
 
-  const handleLogout = () => {
-    logout()
-    navigate("/login")
+      // Logout context app
+      logout()
+
+      // Điều hướng
+      navigate("/login")
+    } catch (error) {
+      console.error("❌ Lỗi khi đăng xuất:", error)
+    }
   }
+
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -64,7 +80,15 @@ export default function Navbar() {
                 to="/profile"
                 className="hidden md:flex items-center gap-2 text-gray-700 hover:text-green-600 transition-colors"
               >
-                <User className="w-5 h-5" />
+                {user.avatar_url ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={user.name || "User avatar"}
+                    className="w-8 h-8 rounded-full object-cover border border-gray-300"
+                  />
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
                 <span>{user?.name || user?.email}</span>
               </Link>
             )}

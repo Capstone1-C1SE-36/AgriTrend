@@ -4,19 +4,17 @@ const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"]
+  //console.log("Auth header:", authHeader);
   const token = authHeader && authHeader.split(" ")[1]
+  if (!token) return res.status(401).json({ error: "Chưa đăng nhập" })
 
-  if (!token) {
-    return res.status(401).json({ error: "Access token required" })
-  }
-
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: "Invalid or expired token" })
-    }
-    req.user = user
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET)
+    req.user = decoded
     next()
-  })
+  } catch {
+    return res.status(403).json({ error: "Token không hợp lệ" })
+  }
 }
 
 export const isAdmin = (req, res, next) => {

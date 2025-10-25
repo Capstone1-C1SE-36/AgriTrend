@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import api from "@/lib/api"
-import LivePriceTicker from "@/components/live-price-ticker"
+import LivePriceTicker from "@/components/live-price-ticker.jsx"
 import PriceCard from "@/components/PriceCard"
 import { io } from "socket.io-client"
 
@@ -25,17 +25,17 @@ export default function Dashboard() {
   useEffect(() => {
     fetchProducts()
 
-    // 👂 Nhận sản phẩm mới được thêm
+    // Nhận sản phẩm mới được thêm
     socket.on("productAdded", (newProduct) => {
       setProducts((prev) => [...prev, newProduct])
     })
 
-    // 👂 Nhận sản phẩm bị xoá
+    // Nhận sản phẩm bị xoá
     socket.on("productDeleted", (deleted) => {
       setProducts((prev) => prev.filter((p) => p.id !== deleted.id))
     })
 
-    // 👂 Khi admin chỉnh sửa thông tin
+    // Khi admin chỉnh sửa thông tin
     // socket.on("productUpdated", (updated) => {
     //   setProducts((prev) =>
     //     prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
@@ -57,11 +57,11 @@ export default function Dashboard() {
       const allProducts = response.data
       console.log("✅ API /products response:", response.data)
 
-      const test = await api.get("/test-db")
-      console.log("✅ API /test-db response:", test.data)
+      // const test = await api.get("/test-db")
+      // console.log("✅ API /test-db response:", test.data)
 
-      // Dữ liệu từ backend nằm ở response.data.data (vì backend trả { success, data })
-      const tests = test.data.data
+      // // Dữ liệu từ backend nằm ở response.data.data (vì backend trả { success, data })
+      // const tests = test.data.data
 
       // 2️⃣ Nếu có token thì mới gọi /favorites
       const token = localStorage.getItem("token")
@@ -77,10 +77,10 @@ export default function Dashboard() {
         }
       }
 
-      // 🔧 Chuyển danh sách yêu thích từ object sang mảng số
+      // Chuyển danh sách yêu thích từ object sang mảng số
       const favIds = favoriteIds.map(f => f.productId);
 
-      // 🔄 Gộp dữ liệu và đánh dấu sản phẩm yêu thích
+      // Gộp dữ liệu và đánh dấu sản phẩm yêu thích
       const merged = allProducts.map(p => {
         const id = p.id || p.productId;
         return {
@@ -106,7 +106,7 @@ export default function Dashboard() {
   }
 
 
-  // ✅ Lọc sản phẩm theo từ khóa và danh mục
+  // Lọc sản phẩm theo từ khóa và danh mục
   const filteredProducts = products.filter((p) => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === "all" || p.category === selectedCategory

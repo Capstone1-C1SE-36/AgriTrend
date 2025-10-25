@@ -19,7 +19,7 @@ export default function AdminProducts() {
     region: "",
   })
 
-  // ✅ Fetch danh sách sản phẩm (convert số luôn)
+  // Fetch danh sách sản phẩm (convert số luôn)
   const fetchProducts = async () => {
     try {
       const response = await api.get("/products")
@@ -42,7 +42,7 @@ export default function AdminProducts() {
 
     const socket = io("http://localhost:5000")
 
-    // 🟡 Giá tự động thay đổi
+    // Giá tự động thay đổi
     socket.on("priceUpdate", (data) => {
       const newPrice = Number(data.newPrice)
       setProducts((prev) =>
@@ -74,7 +74,7 @@ export default function AdminProducts() {
       }, 2000)
     })
 
-    // 🛠️ Sửa sản phẩm
+    // Sửa sản phẩm
     socket.on("productUpdated", (data) => {
       const currentPriceNum = Number(data.currentPrice)
       setProducts((prev) =>
@@ -100,7 +100,7 @@ export default function AdminProducts() {
         })
       )
 
-      // 🟢 Tự reset trend sau 2s như priceUpdate
+      // Tự reset trend sau 2s như priceUpdate
       setTimeout(() => {
         setProducts((prev) =>
           prev.map((p) => (p.id === data.id ? { ...p, trend: "neutral" } : p))
@@ -109,7 +109,7 @@ export default function AdminProducts() {
     })
 
 
-    // 🟢 Thêm mới
+    // Thêm mới
     socket.on("productAdded", (newProduct) => {
       const p = {
         ...newProduct,
@@ -120,7 +120,7 @@ export default function AdminProducts() {
       setProducts((prev) => [...prev, p])
     })
 
-    // 🔴 Xoá
+    // Xoá
     socket.on("productDeleted", (deleted) => {
       setProducts((prev) => prev.filter((p) => p.id !== deleted.id))
     })
@@ -134,7 +134,7 @@ export default function AdminProducts() {
     }
   }, [])
 
-  // ✅ Tạo hoặc cập nhật sản phẩm
+  // Tạo hoặc cập nhật sản phẩm
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
@@ -157,7 +157,7 @@ export default function AdminProducts() {
     }
   }
 
-  // ✅ Xóa sản phẩm
+  // Xóa sản phẩm
   const handleDelete = async (id) => {
     if (confirm("Bạn có chắc muốn xóa sản phẩm này?")) {
       try {
@@ -169,7 +169,7 @@ export default function AdminProducts() {
     }
   }
 
-  // ✅ Cập nhật giá ngẫu nhiên
+  // Cập nhật giá ngẫu nhiên
   const handlePriceUpdate = async (id, currentPriceRaw) => {
     const currentPrice = Number(currentPriceRaw)
     if (isNaN(currentPrice)) return
@@ -183,7 +183,7 @@ export default function AdminProducts() {
     }
   }
 
-  // ✅ Chỉnh sửa sản phẩm
+  // Chỉnh sửa sản phẩm
   const handleEdit = (product) => {
     setEditingProduct(product)
     setFormData({
