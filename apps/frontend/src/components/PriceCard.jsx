@@ -8,7 +8,7 @@ import { io } from "socket.io-client"
 import api from "@/lib/api"
 import { formatDistanceToNow } from "date-fns"
 
-// ⚙️ Kết nối Socket.IO tới backend (chạy 1 lần toàn web)
+// Kết nối Socket.IO tới backend (chạy 1 lần toàn web)
 const socket = io("http://localhost:5000")
 
 export default function PriceCard({ item, onCreateAlert, showAlertButton = false }) {

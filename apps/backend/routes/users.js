@@ -46,7 +46,7 @@ router.get("/", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// 🧩 Cập nhật thông tin người dùng (Admin)
+// Cập nhật thông tin người dùng (Admin)
 router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
   const { name, email, role, status } = req.body
   const id = parseInt(req.params.id)
@@ -78,7 +78,7 @@ router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// 🗑️ Xóa người dùng (Admin)
+// Xóa người dùng (Admin)
 router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
   const id = parseInt(req.params.id)
 

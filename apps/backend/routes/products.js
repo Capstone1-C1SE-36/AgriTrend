@@ -288,7 +288,6 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-
 // Cập nhật sản phẩm
 router.put("/:id", authenticateToken, isAdmin, async (req, res) => {
   try {
@@ -403,7 +402,6 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
     res.status(500).json({ error: "Lỗi máy chủ" })
   }
 })
-
 
 // API cập nhật giá nhanh (chỉ admin)
 router.patch("/:id/price", authenticateToken, isAdmin, async (req, res) => {
