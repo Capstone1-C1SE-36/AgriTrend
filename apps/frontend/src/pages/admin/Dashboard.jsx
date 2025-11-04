@@ -19,7 +19,7 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      const [productsRes, usersRes] = await Promise.all([api.get("/products"), api.get("/users")])
+      const [productsRes, usersRes] = await Promise.all([api.get("/products/all"), api.get("/users")])
 
       const products = productsRes.data
       const avgChange = products.reduce((sum, p) => sum + p.change, 0) / products.length

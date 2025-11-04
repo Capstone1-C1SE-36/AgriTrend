@@ -16,7 +16,7 @@ const clearDB = async () => {
             password: DB_PASS,
         })
 
-        // ⚠️ Xoá cả database
+        // Xoá cả database
         await connection.query(`DROP DATABASE IF EXISTS \`${DB_NAME}\``)
         console.log(`💣 Đã xoá toàn bộ database "${DB_NAME}".`)
 

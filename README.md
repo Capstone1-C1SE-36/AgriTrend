@@ -86,6 +86,19 @@
 
 ---
 
+# Tạo database tự động khi kết nối mySQL
+- Thêm DB_PASS và trong file .env trong Backend
+- tạo hoặc xoá trong thư mục gốc của backend
+- ..\AgriTrend\apps\backend>
+- Tạo database 
+```bash
+npm run db:init
+```
+- Xoá database 
+```bash
+npm run db:clear
+```
+
 # Có 2 cách chạy dự án
 
 # Cách 1
@@ -111,10 +124,11 @@ npm install
 ```bash
 DB_HOST=localhost
 DB_USER=root
-DB_PASS=12345
+DB_PASS=
 DB_NAME=agrirend
 PORT=5000
 JWT_SECRET=mysecretkey
+CLERK_SECRET_KEY=
 ```
 
 - 📁 Frontend
@@ -123,6 +137,7 @@ JWT_SECRET=mysecretkey
 - Trong .env:
 ```bash
 VITE_API_URL=http://localhost:5000/api
+VITE_CLERK_PUBLISHABLE_KEY=
 ```
 
 # Chạy Dự Án

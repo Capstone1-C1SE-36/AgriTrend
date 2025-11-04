@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
 import { TrendingUp, TrendingDown, Heart, Search } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import api from "@/lib/api"
-import LivePriceTicker from "@/components/live-price-ticker"
+import LivePriceTicker from "@/components/live-price-ticker.jsx"
 import PriceCard from "@/components/PriceCard"
 import { io } from "socket.io-client"
 
@@ -19,99 +18,96 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [categories, setCategories] = useState(["all"])
 
-  const categories = ["all", "Lúa gạo", "Cà phê", "Gia vị", "Cao su", "Hạt điều", "Thủy sản"]
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/products/categories")
+      // thêm "all" vào đầu danh sách
+      setCategories(["all", ...res.data.map(c => c.name)])
+    } catch (error) {
+      console.error("⚠️ Failed to fetch categories:", error)
+    }
+  }
 
   useEffect(() => {
     fetchProducts()
+    fetchCategories()
 
-    // 👂 Nhận sản phẩm mới được thêm
+    // Khi có sản phẩm mới thêm
     socket.on("productAdded", (newProduct) => {
       setProducts((prev) => [...prev, newProduct])
     })
 
-    // 👂 Nhận sản phẩm bị xoá
+    // Khi sản phẩm bị xóa
     socket.on("productDeleted", (deleted) => {
       setProducts((prev) => prev.filter((p) => p.id !== deleted.id))
     })
 
-    // 👂 Khi admin chỉnh sửa thông tin
-    // socket.on("productUpdated", (updated) => {
-    //   setProducts((prev) =>
-    //     prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
-    //   )
-    // })
-
     return () => {
       socket.off("productAdded")
       socket.off("productDeleted")
-      // socket.off("productUpdated")
-      // socket.disconnect()
     }
   }, [])
 
+  // Hàm tải sản phẩm (có tìm kiếm, lọc và phân trang)
   const fetchProducts = async () => {
     try {
-      // Lấy danh sách sản phẩm
-      const response = await api.get("/products")
-      const allProducts = response.data
-      console.log("✅ API /products response:", response.data)
+      setLoading(true)
 
-      const test = await api.get("/test-db")
-      console.log("✅ API /test-db response:", test.data)
+      const response = await api.get("/products", {
+        params: {
+          page,
+          search: searchQuery,
+          category: selectedCategory === "all" ? undefined : selectedCategory,
+        },
+      })
 
-      // Dữ liệu từ backend nằm ở response.data.data (vì backend trả { success, data })
-      const tests = test.data.data
+      const { data, totalPages } = response.data
 
-      // 2️⃣ Nếu có token thì mới gọi /favorites
+      // Lấy danh sách yêu thích (nếu có token)
       const token = localStorage.getItem("token")
       let favoriteIds = []
 
       if (token) {
         try {
           const favResponse = await api.get("/favorites")
-          favoriteIds = favResponse.data
-          console.log("❤️ API /favorites response:", favResponse.data)
+          favoriteIds = favResponse.data.map(f => f.productId)
         } catch (err) {
           console.warn("⚠️ Không thể tải danh sách yêu thích:", err)
         }
       }
 
-      // 🔧 Chuyển danh sách yêu thích từ object sang mảng số
-      const favIds = favoriteIds.map(f => f.productId);
-
-      // 🔄 Gộp dữ liệu và đánh dấu sản phẩm yêu thích
-      const merged = allProducts.map(p => {
-        const id = p.id || p.productId;
-        return {
-          ...p,
-          id,
-          isFavorite: favIds.includes(id),
-        };
-      });
-
+      // Gộp dữ liệu & đánh dấu sản phẩm yêu thích
+      const merged = data.map(p => ({
+        ...p,
+        id: p.id || p.productId,
+        isFavorite: favoriteIds.includes(p.id || p.productId),
+      }))
 
       setProducts(merged)
-      console.log(" Products loaded:", merged)
-      console.log(" p loaded:", products)
-      console.log("❤️ Fav IDs:", favIds);
-      console.log("📦 Products merged:", merged);
-
-
+      setTotalPages(totalPages)
     } catch (error) {
-      console.error("Failed to fetch products:", error)
+      console.error("❌ Lỗi khi tải sản phẩm:", error)
     } finally {
       setLoading(false)
     }
   }
 
+  // Tự động gọi API khi thay đổi tìm kiếm, danh mục hoặc trang
+  useEffect(() => {
+    fetchProducts()
+  }, [searchQuery, selectedCategory, page])
 
-  // ✅ Lọc sản phẩm theo từ khóa và danh mục
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  const handleNextPage = () => {
+    if (page < totalPages) setPage(page + 1)
+  }
+
+  const handlePrevPage = () => {
+    if (page > 1) setPage(page - 1)
+  }
 
   return (
     <div>
@@ -119,11 +115,13 @@ export default function Dashboard() {
       <LivePriceTicker />
 
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Tiêu đề */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Giá nông sản hôm nay</h1>
           <p className="text-gray-600">Cập nhật giá thời gian thực từ các khu vực trên toàn quốc</p>
         </div>
 
+        {/* Tìm kiếm + Lọc */}
         <Card className="mb-8">
           <CardContent className="pt-6">
             <div className="space-y-4">
@@ -132,7 +130,10 @@ export default function Dashboard() {
                 <Input
                   placeholder="Tìm kiếm nông sản..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setPage(1)
+                    setSearchQuery(e.target.value)
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -142,7 +143,10 @@ export default function Dashboard() {
                     key={category}
                     variant={selectedCategory === category ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => {
+                      setPage(1)
+                      setSelectedCategory(category)
+                    }}
                     className="whitespace-nowrap"
                   >
                     {category === "all" ? "Tất cả" : category}
@@ -153,16 +157,38 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Danh sách sản phẩm */}
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <PriceCard key={product.id} item={product} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.length > 0 ? (
+                products.map((product) => <PriceCard key={product.id} item={product} />)
+              ) : (
+                <div className="col-span-full text-center text-gray-500 py-10">
+                  Không tìm thấy sản phẩm phù hợp
+                </div>
+              )}
+            </div>
+
+            {/* Điều hướng phân trang */}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-4 mt-8">
+                <Button onClick={handlePrevPage} disabled={page === 1} variant="outline">
+                  Trang trước
+                </Button>
+                <span className="text-gray-600">
+                  Trang {page} / {totalPages}
+                </span>
+                <Button onClick={handleNextPage} disabled={page === totalPages} variant="outline">
+                  Trang sau
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

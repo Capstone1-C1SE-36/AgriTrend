@@ -1,49 +1,61 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import Navbar from "../../components/Navbar"
 import api from "@/lib/api"
 import PriceCard from "@/components/PriceCard"
+import { Button } from "@/components/ui/button"
 
 export default function Favorites() {
   const [favorites, setFavorites] = useState([])
   const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
 
   useEffect(() => {
     fetchFavorites()
-  }, [])
+  }, [currentPage])
 
   const fetchFavorites = async () => {
     try {
+      setLoading(true)
       // 🔹 Lấy danh sách ID sản phẩm yêu thích của user
       const favRes = await api.get("/favorites")
       const favoriteIds = favRes.data
-      console.log("❤️ Favorite IDs:", favoriteIds)
 
       if (!favoriteIds.length) {
         setFavorites([])
+        setTotalPages(1)
         return
       }
 
-      // 🔧 Chuyển danh sách yêu thích từ object sang mảng số
       const favIds = favoriteIds.map(f => f.productId)
-      console.log("✅ Favorite IDs:", favIds)
 
-      // 🔹 Lấy danh sách sản phẩm từ /products
-      const prodRes = await api.get("/products")
-      const allProducts = prodRes.data
+      // 🔹 Gọi /products với danh sách IDs và phân trang
+      const prodRes = await api.get("/products", {
+        params: {
+          ids: favIds.join(","),
+          page: currentPage,
+        },
+      })
 
-      // 🔹 Lọc ra những sản phẩm có id nằm trong danh sách yêu thích
-      const favProducts = allProducts.filter(p => favIds.includes(p.id))
-
-      // 🔹 Gắn cờ isFavorite: true để hiển thị tim đỏ
-      const final = favProducts.map(p => ({ ...p, isFavorite: true }))
-
+      const { data, totalPages } = prodRes.data
+      const final = data.map(p => ({ ...p, isFavorite: true }))
       setFavorites(final)
-      console.log("✅ Favorites loaded:", final)
+      setTotalPages(totalPages)
     } catch (error) {
-      console.error("Failed to load favorites:", error)
+      console.error("❌ Lỗi khi tải danh sách yêu thích:", error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handlePrev = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1)
+  }
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1)
   }
 
   return (
@@ -63,11 +75,34 @@ export default function Favorites() {
             Bạn chưa có sản phẩm nào trong danh sách yêu thích.
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {favorites.map(item => (
-              <PriceCard key={item.id} item={item} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {favorites.map(item => (
+                <PriceCard key={item.id} item={item} />
+              ))}
+            </div>
+
+            {/* ✅ Phân trang */}
+            <div className="flex justify-center items-center gap-4 mt-8">
+              <Button
+                variant="outline"
+                onClick={handlePrev}
+                disabled={currentPage === 1}
+              >
+                ← Trước
+              </Button>
+              <span className="text-gray-700">
+                Trang {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={handleNext}
+                disabled={currentPage === totalPages}
+              >
+                Sau →
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </div>

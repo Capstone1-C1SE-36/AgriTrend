@@ -4,7 +4,7 @@ import pool from "../db.js";
 
 const router = express.Router();
 
-// ✅ Route kiểm tra kết nối DB & xem dữ liệu products
+// Route kiểm tra kết nối DB & xem dữ liệu products
 router.get("/db", async (req, res) => {
     try {
         const [rows] = await pool.query("SELECT * FROM products");

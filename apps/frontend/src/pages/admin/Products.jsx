@@ -11,6 +11,7 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [categories, setCategories] = useState([])
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -22,7 +23,7 @@ export default function AdminProducts() {
   // ✅ Fetch danh sách sản phẩm (convert số luôn)
   const fetchProducts = async () => {
     try {
-      const response = await api.get("/products")
+      const response = await api.get("/products/all")
       const data = response.data.map((p) => ({
         ...p,
         currentPrice: Number(p.currentPrice),
@@ -36,11 +37,20 @@ export default function AdminProducts() {
       setLoading(false)
     }
   }
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/products/categories")
+      setCategories(res.data)
+    } catch (error) {
+      console.error("Failed to fetch categories:", error)
+    }
+  }
 
   useEffect(() => {
     fetchProducts()
+    fetchCategories()
 
-    const socket = io("http://localhost:5000")
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000")
 
     // 🟡 Giá tự động thay đổi
     socket.on("priceUpdate", (data) => {
@@ -264,25 +274,86 @@ export default function AdminProducts() {
             <div className="bg-white rounded-xl p-6 w-full max-w-md">
               <h2 className="text-xl font-bold text-gray-900 mb-4">{editingProduct ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {["name", "category", "currentPrice", "unit", "region"].map((key) => (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {key === "currentPrice" ? "Giá (VNĐ)" : key === "unit" ? "Đơn vị" : key === "region" ? "Khu vực" : "Tên sản phẩm"}
-                    </label>
-                    <input
-                      type={key === "currentPrice" ? "number" : "text"}
-                      value={formData[key]}
-                      onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                      required
-                    />
-                  </div>
-                ))}
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => { setShowModal(false); resetForm() }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Hủy</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg">{editingProduct ? "Cập nhật" : "Thêm"}</button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="Nhập tên sản phẩm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Loại sản phẩm</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">-- Chọn loại --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Giá hiện tại</label>
+                  <input
+                    type="number"
+                    value={formData.currentPrice}
+                    onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="VD: 25000"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị</label>
+                  <input
+                    type="text"
+                    value={formData.unit}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="VD: kg, tấn..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Khu vực</label>
+                  <input
+                    type="text"
+                    value={formData.region}
+                    onChange={(e) => setFormData({ ...formData, region: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="VD: Lâm Đồng, Đắk Lắk..."
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); resetForm() }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                  >
+                    {editingProduct ? "Cập nhật" : "Thêm"}
+                  </button>
                 </div>
               </form>
+
             </div>
           </div>
         )}

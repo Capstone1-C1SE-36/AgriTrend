@@ -43,6 +43,7 @@ apps/backend/.env.*
 apps/backend/uploads/
 apps/backend/tmp/
 apps/backend/logs/
+apps/backend/scraped/all_regions.json
 
 # ==============================
 # 💻 FRONTEND SPECIFIC (React + Vite)

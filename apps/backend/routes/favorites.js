@@ -4,18 +4,27 @@ import pool from "../db.js"
 
 const router = express.Router()
 
-// ✅ Lấy danh sách sản phẩm yêu thích của user hiện tại
+// Lấy danh sách sản phẩm yêu thích của user hiện tại
 router.get("/", authenticateToken, async (req, res) => {
     const userId = req.user.id
 
     try {
-        const [rows] = await pool.query(
-            `SELECT f.product_id AS productId, p.name, p.category, p.currentPrice, p.unit, p.region, p.trend
-       FROM favorites f
-       JOIN products p ON f.product_id = p.id
-       WHERE f.user_id = ?`,
-            [userId]
-        )
+        const [rows] = await pool.query(`
+  SELECT 
+    f.product_id AS productId, 
+    p.name, 
+    c.name AS category_name,
+    p.currentPrice, 
+    p.unit, 
+    p.region, 
+    p.trend
+  FROM favorites f
+  JOIN products p ON f.product_id = p.id
+  LEFT JOIN categories c ON p.category_id = c.id
+  WHERE f.user_id = ?
+`, [req.user.id])
+
+
 
         res.json(rows)
     } catch (error) {
@@ -24,7 +33,7 @@ router.get("/", authenticateToken, async (req, res) => {
     }
 })
 
-// ✅ Thêm hoặc bỏ yêu thích (toggle)
+// Thêm hoặc bỏ yêu thích (toggle)
 router.post("/:productId", authenticateToken, async (req, res) => {
     const userId = req.user.id
     const productId = parseInt(req.params.productId)

@@ -1,51 +1,61 @@
 import express from "express"
+import pool from "../db.js"
 import { authenticateToken } from "../middleware/auth.js"
 
 const router = express.Router()
 
-const alerts = []
+// Tạo cảnh báo mới
+router.post("/", authenticateToken, async (req, res) => {
+  try {
+    const { product_id, threshold_price, condition } = req.body
+    const [user] = await pool.query("SELECT email FROM users WHERE id = ?", [req.user.id])
+    const email = user[0].email
 
-// Get user alerts
-router.get("/", authenticateToken, (req, res) => {
-  const userAlerts = alerts.filter((a) => a.userId === req.user.id)
-  res.json(userAlerts)
+    await pool.query(
+      `INSERT INTO price_alerts (user_id, product_id, target_price, alert_condition, email)
+   VALUES (?, ?, ?, ?, ?)`,
+      [req.user.id, product_id, threshold_price, condition, req.user.email]
+    )
+
+    res.json({ message: "✅ Đã tạo cảnh báo giá thành công!" })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Lỗi khi tạo cảnh báo." })
+  }
 })
 
-// Create alert
-router.post("/", authenticateToken, (req, res) => {
-  const newAlert = {
-    id: alerts.length + 1,
-    userId: req.user.id,
-    ...req.body,
-    createdAt: new Date().toISOString(),
+// Lấy danh sách cảnh báo của người dùng
+router.get("/", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await pool.query(`
+  SELECT 
+    a.*, 
+    p.name AS product_name, 
+ p.currentPrice,
+p.previousPrice,
+p.trend
+
+  FROM price_alerts a
+  JOIN products p ON a.product_id = p.id
+  WHERE a.user_id = ?
+  ORDER BY a.created_at DESC
+`, [userId])
+
+
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách cảnh báo:", error);
+    res.status(500).json({ error: "Lỗi khi lấy danh sách cảnh báo." });
   }
+});
 
-  alerts.push(newAlert)
-  res.status(201).json(newAlert)
-})
 
-// Update alert
-router.put("/:id", authenticateToken, (req, res) => {
-  const index = alerts.findIndex((a) => a.id === Number.parseInt(req.params.id) && a.userId === req.user.id)
-
-  if (index === -1) {
-    return res.status(404).json({ error: "Alert not found" })
-  }
-
-  alerts[index] = { ...alerts[index], ...req.body }
-  res.json(alerts[index])
-})
-
-// Delete alert
-router.delete("/:id", authenticateToken, (req, res) => {
-  const index = alerts.findIndex((a) => a.id === Number.parseInt(req.params.id) && a.userId === req.user.id)
-
-  if (index === -1) {
-    return res.status(404).json({ error: "Alert not found" })
-  }
-
-  alerts.splice(index, 1)
-  res.json({ message: "Alert deleted successfully" })
+// Xoá cảnh báo
+router.delete("/:id", authenticateToken, async (req, res) => {
+  await pool.query("DELETE FROM price_alerts WHERE id = ? AND user_id = ?", [req.params.id, req.user.id])
+  res.json({ message: "🗑️ Đã xoá cảnh báo thành công" })
 })
 
 export default router

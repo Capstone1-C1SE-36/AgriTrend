@@ -6,18 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { io } from "socket.io-client"
 import api from "@/lib/api"
+import { formatDistanceToNow } from "date-fns"
 
 // ⚙️ Kết nối Socket.IO tới backend (chạy 1 lần toàn web)
 const socket = io("http://localhost:5000")
 
-export default function PriceCard({ item }) {
+export default function PriceCard({ item, onCreateAlert, showAlertButton = false }) {
     const [currentPrice, setCurrentPrice] = useState(item.currentPrice)
     const [previousPrice, setPreviousPrice] = useState(item.previousPrice)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isFavorite, setIsFavorite] = useState(item.isFavorite)
     const [product, setProduct] = useState(item) // 🆕 giữ bản sao để cập nhật mọi field
 
-    // ✅ Nhận cập nhật từ server (giá tự động hoặc admin sửa)
+    // Nhận cập nhật từ server (giá tự động hoặc admin sửa)
     useEffect(() => {
         const handleServerUpdate = (data) => {
             if (data.id === item.id) {
@@ -38,12 +39,12 @@ export default function PriceCard({ item }) {
                     region: data.region ?? prev.region,
                 }))
 
-                // 🔄 Tắt hiệu ứng highlight sau 1 giây
+                // Tắt hiệu ứng highlight sau 1 giây
                 setTimeout(() => setIsUpdating(false), 1000)
             }
         }
 
-        // 👂 Nghe cả 2 event từ server
+        // Nghe cả 2 event từ server
         socket.on("priceUpdate", handleServerUpdate)
         socket.on("productUpdated", handleServerUpdate)
 
@@ -53,7 +54,7 @@ export default function PriceCard({ item }) {
         }
     }, [item.id, currentPrice])
 
-    // ❤️ Toggle yêu thích
+    // Toggle yêu thích
     const toggleFavorite = async (e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -65,7 +66,7 @@ export default function PriceCard({ item }) {
         }
     }
 
-    // 📊 Tính phần trăm thay đổi giá
+    // Tính phần trăm thay đổi giá
     const priceChange = currentPrice - previousPrice
     const percentChange =
         previousPrice > 0 ? ((priceChange / previousPrice) * 100).toFixed(2) : 0
@@ -86,12 +87,12 @@ export default function PriceCard({ item }) {
         <Link to={`/product/${product.id}`} className="block">
             <Card
                 className={`hover:shadow-md transition-all duration-500 ease-in-out cursor-pointer ${isUpdating
-                        ? priceChange > 0
-                            ? "ring-2 ring-green-400/50"
-                            : priceChange < 0
-                                ? "ring-2 ring-red-400/50"
-                                : "ring-2 ring-gray-300/50"
-                        : ""
+                    ? priceChange > 0
+                        ? "ring-2 ring-green-400/50"
+                        : priceChange < 0
+                            ? "ring-2 ring-red-400/50"
+                            : "ring-2 ring-gray-300/50"
+                    : ""
                     }`}
             >
                 <CardContent className="pt-6">
@@ -149,9 +150,30 @@ export default function PriceCard({ item }) {
                                 {product.region}
                             </Badge>
                             <span className="text-xs text-gray-500">
-                                {new Date().toLocaleString("vi-VN")}
+                                {new Date(product.lastUpdate).toLocaleString("vi-VN", {
+                                    day: "2-digit",
+                                    month: "long",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                })}
                             </span>
                         </div>
+                        {/* ... nội dung hiển thị sản phẩm ... */}
+
+                        {/* Chỉ hiện nút nếu showAlertButton = true */}
+                        {showAlertButton && (
+                            <Button
+                                className="w-full bg-green-600 text-white mt-3"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    onCreateAlert(item)
+                                }}
+                            >
+                                🔔 Tạo cảnh báo
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>
