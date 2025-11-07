@@ -56,20 +56,36 @@ function calcTrend(prev, curr) {
 function mergeRegionData(oldRegion, newRegion) {
     if (!oldRegion) return newRegion;
 
-    const oldDates = new Set(oldRegion.data.map((d) => d["Ngày"]));
+    // ✅ Key chống trùng là: Ngày + Giá + Giờ
+    const existingRecords = new Set(
+        oldRegion.data.map(d => `${d["Ngày"]}|${d.priceValue}|${d.time}`)
+    );
+
     const mergedData = [
-        ...newRegion.data.filter((d) => !oldDates.has(d["Ngày"])),
+        ...newRegion.data.filter(d => {
+            const key = `${d["Ngày"]}|${d.priceValue}|${d.time}`;
+            return !existingRecords.has(key); // chỉ bỏ nếu trùng cả 3: ngày + giá + giờ
+        }),
         ...oldRegion.data,
     ];
 
+    // Sắp xếp mới nhất lên đầu (ngày + giờ)
     mergedData.sort((a, b) => {
         const [da, ma, ya] = a["Ngày"].split("/").map(Number);
         const [db, mb, yb] = b["Ngày"].split("/").map(Number);
-        return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
+        const dateA = new Date(ya, ma - 1, da);
+        const dateB = new Date(yb, mb - 1, db);
+
+        if (dateA - dateB === 0) {
+            return b.time.localeCompare(a.time); // cùng ngày thì sort theo giờ mới nhất
+        }
+        return dateB - dateA;
     });
 
     return { ...oldRegion, data: mergedData };
 }
+
+
 
 // =======================
 // ☕ Cào giá cà phê
@@ -92,7 +108,7 @@ async function scrapeCoffee(page, existing) {
                             const Giá = tds[1].innerText.trim();
                             const ThayĐổi = tds[2].innerText.trim();
                             const priceValue = parseInt(Giá.replace(/\D/g, "")) || 0;
-                            return { Ngày, Giá, ThayĐổi, priceValue };
+                            return { Ngày, Giá, ThayĐổi, priceValue, time: new Date().toLocaleTimeString("vi-VN") };
                         }
                         return null;
                     })
@@ -193,6 +209,7 @@ async function scrapePepper(page, existing) {
                         Giá: r.GiaMua,
                         ThayĐổi: r.ThayDoi,
                         priceValue: r.priceValue,
+                        time: new Date().toLocaleTimeString("vi-VN")
                     },
                 ],
             };

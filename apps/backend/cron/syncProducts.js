@@ -81,9 +81,14 @@ export async function syncProducts(io) {
             console.log(`🆕 Thêm sản phẩm mới: ${name}`);
 
             for (const item of sortedRows) {
+                const now = new Date(); // giờ hiện tại
+                const itemDate = new Date(item.date);
+                // Gộp ngày của item + giờ hiện tại
+                itemDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
+
                 await pool.query(
                     "INSERT INTO price_history (product_id, price, updated_at) VALUES (?, ?, ?)",
-                    [newId, item.priceValue, item.date]
+                    [newId, item.priceValue, itemDate]
                 );
             }
 
@@ -144,19 +149,35 @@ export async function syncProducts(io) {
 
                 if (io) {
                     const [updatedRows] = await pool.query("SELECT * FROM products WHERE id = ?", [productId]);
-                    const updatedProduct = updatedRows[0];
+                    const updated = updatedRows[0];
+
+                    // 🔢 Ép kiểu về số và format lại object gọn gàng
+                    const updatedProduct = {
+                        ...updated,
+                        category: updated.category_name,
+                        currentPrice: Number(updated.currentPrice),
+                        previousPrice: Number(updated.previousPrice),
+                    };
+
+                    // 📢 Emit realtime
                     io.emit("productUpdated", updatedProduct);
                     io.emit("priceUpdate", {
-                        id: productId,
-                        newPrice: currentPrice,
-                        previousPrice: previousPrice,
+                        id: updatedProduct.id,
+                        newPrice: updatedProduct.currentPrice,
+                        previousPrice: updatedProduct.previousPrice,
                     });
                     if (newDatesAdded > 0) {
                         const [allPrices] = await pool.query(
                             "SELECT price, updated_at FROM price_history WHERE product_id = ? ORDER BY updated_at ASC",
                             [productId]
                         );
-                        io.emit("priceHistoryUpdated", { id: productId, history: allPrices });
+                        io.emit("priceHistoryUpdated", {
+                            id: updatedProduct.id,
+                            history: allPrices.map(p => ({
+                                ...p,
+                                price: Number(p.price), // cũng nên ép giá lịch sử về số
+                            })),
+                        });
                     }
                 }
             } else {
