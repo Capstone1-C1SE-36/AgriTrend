@@ -53,3 +53,34 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+/**
+ * Hàm tra cứu giá dành riêng cho Chatbot
+ * @param {string} productName - Tên sản phẩm (ví dụ: "cà phê")
+ * @param {string} regionName - Tên khu vực (ví dụ: "Đắk Lắk")
+ * @returns {Promise<object>} - Dữ liệu sản phẩm đầu tiên tìm thấy
+ */
+export const fetchPriceForChatbot = async (productName, regionName) => {
+  try {
+    const response = await api.get("/products", {
+      params: {
+        search: productName,
+        region: regionName,
+        limit: 1 // Chúng ta chỉ cần kết quả chính xác nhất
+      },
+    });
+
+    if (response.data && response.data.data.length > 0) {
+      return response.data.data[0]; // Trả về sản phẩm đầu tiên
+    } else {
+      // Thử tìm kiếm chung nếu không có khu vực
+      const generalResponse = await api.get("/products", {
+        params: { search: productName, limit: 1 },
+      });
+      return generalResponse.data?.data?.[0] || null;
+    }
+  } catch (error) {
+    console.error("Lỗi khi tra giá cho chatbot:", error);
+    return null; // Trả về null nếu có lỗi
+  }
+};
