@@ -11,7 +11,7 @@ import LivePriceTicker from "@/components/live-price-ticker.jsx"
 import PriceCard from "@/components/PriceCard"
 import { io } from "socket.io-client"
 
-const socket = io("http://localhost:5000")
+const socket = io("http://localhost:5000") //
 
 export default function Dashboard() {
   const [products, setProducts] = useState([])
@@ -24,8 +24,7 @@ export default function Dashboard() {
 
   const fetchCategories = async () => {
     try {
-      const res = await api.get("/products/categories")
-      // thêm "all" vào đầu danh sách
+      const res = await api.get("/products/categories") //
       setCategories(["all", ...res.data.map(c => c.name)])
     } catch (error) {
       console.error("⚠️ Failed to fetch categories:", error)
@@ -36,12 +35,10 @@ export default function Dashboard() {
     fetchProducts()
     fetchCategories()
 
-    // Khi có sản phẩm mới thêm
     socket.on("productAdded", (newProduct) => {
       setProducts((prev) => [...prev, newProduct])
     })
 
-    // Khi sản phẩm bị xóa
     socket.on("productDeleted", (deleted) => {
       setProducts((prev) => prev.filter((p) => p.id !== deleted.id))
     })
@@ -52,12 +49,11 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Hàm tải sản phẩm (có tìm kiếm, lọc và phân trang)
   const fetchProducts = async () => {
     try {
       setLoading(true)
 
-      const response = await api.get("/products", {
+      const response = await api.get("/products", { //
         params: {
           page,
           search: searchQuery,
@@ -67,25 +63,40 @@ export default function Dashboard() {
 
       const { data, totalPages } = response.data
 
-      // Lấy danh sách yêu thích (nếu có token)
       const token = localStorage.getItem("token")
       let favoriteIds = []
+      let userCosts = new Map() 
 
       if (token) {
         try {
-          const favResponse = await api.get("/favorites")
+          const [favResponse, costResponse] = await Promise.all([
+            api.get("/favorites"), //
+            // --- SỬA LỖI Ở ĐÂY: Bỏ "/api" ---
+            api.get("/costs") 
+          ]);
+          
           favoriteIds = favResponse.data.map(f => f.productId)
+
+          costResponse.data.forEach(c => {
+            userCosts.set(c.product_id, c.cost_price);
+          });
+
         } catch (err) {
-          console.warn("⚠️ Không thể tải danh sách yêu thích:", err)
+          console.warn("⚠️ Không thể tải danh sách yêu thích hoặc chi phí:", err)
         }
       }
 
-      // Gộp dữ liệu & đánh dấu sản phẩm yêu thích
-      const merged = data.map(p => ({
-        ...p,
-        id: p.id || p.productId,
-        isFavorite: favoriteIds.includes(p.id || p.productId),
-      }))
+      const merged = data.map(p => {
+        const productId = p.id || p.productId;
+        const userCost = userCosts.get(productId) || 0; 
+
+        return {
+          ...p,
+          id: productId,
+          isFavorite: favoriteIds.includes(productId),
+          userCost: userCost, 
+        };
+      });
 
       setProducts(merged)
       setTotalPages(totalPages)

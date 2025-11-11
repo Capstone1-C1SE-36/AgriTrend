@@ -201,7 +201,22 @@ const initDB = async () => {
 `)
     console.log("✅ Bảng 'price_alerts' đã sẵn sàng.")
 
-
+// Bảng chi phí của người dùng
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_costs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        product_id INT NOT NULL,
+        cost_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_product (user_id, product_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+      )
+    `)
+    console.log("✅ Bảng 'user_costs' đã sẵn sàng.")
+    
     console.log("✅ Tất cả bảng & dữ liệu mẫu đã được khởi tạo thành công.")
     return pool
   } catch (error) {

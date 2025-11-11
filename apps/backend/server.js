@@ -9,6 +9,7 @@ import fs from "fs";
 import { spawn } from "child_process";
 import * as cron from "node-cron";
 import nodemailer from "nodemailer";
+import costRoutes from "./routes/costs.js";
 import pool from "./db.js";
 
 // Import routes
@@ -44,6 +45,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/favorites", favoritesRouter);
+app.use("/api/costs", costRoutes);
 app.use("/api/test", testRoutes);
 
 io.on("connection", async (socket) => {
