@@ -104,10 +104,99 @@ router.get("/all", async (req, res) => {
 
 router.get("/categories", async (req, res) => {
   try {
+    const [rows] = await pool.query(`
+      SELECT DISTINCT c.id, c.name
+      FROM categories c
+      INNER JOIN products p ON p.category_id = c.id
+      ORDER BY c.name ASC
+    `);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách loại:", error);
+    res.status(500).json({ error: "Lỗi máy chủ" });
+  }
+});
+
+router.get("/categorie", async (req, res) => {
+  try {
     const [rows] = await pool.query("SELECT id, name FROM categories ORDER BY name ASC")
     res.json(rows)
   } catch (error) {
-    console.error("❌ Lỗi khi lấy danh sách loại:", error)
+    console.error("❌ Lỗi khi lấy danh sách loại:", error);
+    res.status(500).json({ error: "Lỗi máy chủ" });
+  }
+});
+
+// Cập nhật loại sản phẩm (chỉ admin)
+router.put("/categories/:id", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { name } = req.body
+    const { id } = req.params
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ error: "Tên loại sản phẩm không được để trống" })
+    }
+
+    // Kiểm tra loại tồn tại chưa
+    const [exists] = await pool.query("SELECT id FROM categories WHERE id = ?", [id])
+    if (exists.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy loại sản phẩm" })
+    }
+
+    // Kiểm tra trùng tên (ngoại trừ chính nó)
+    const [dup] = await pool.query(
+      "SELECT id FROM categories WHERE name = ? AND id != ?",
+      [name.trim(), id]
+    )
+    if (dup.length > 0) {
+      return res.status(400).json({ error: `Tên loại '${name}' đã tồn tại` })
+    }
+
+    // Cập nhật
+    await pool.query("UPDATE categories SET name = ? WHERE id = ?", [name.trim(), id])
+
+    const [updated] = await pool.query("SELECT id, name, created_at FROM categories WHERE id = ?", [id])
+
+    res.json({
+      message: "✅ Đã cập nhật loại sản phẩm thành công",
+      category: updated[0],
+    })
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật loại sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
+  }
+})
+
+
+// Xóa loại sản phẩm (chỉ admin)
+router.delete("/categories/:id", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    // Kiểm tra loại tồn tại
+    const [exists] = await pool.query("SELECT * FROM categories WHERE id = ?", [id])
+    if (exists.length === 0) {
+      return res.status(404).json({ error: "Không tìm thấy loại sản phẩm" })
+    }
+
+    // Kiểm tra xem có sản phẩm nào thuộc loại này không
+    const [related] = await pool.query("SELECT COUNT(*) AS c FROM products WHERE category_id = ?", [id])
+    if (related[0].c > 0) {
+      return res.status(400).json({
+        error: "Không thể xóa loại vì vẫn còn sản phẩm thuộc loại này. Hãy xóa hoặc chuyển sản phẩm trước.",
+      })
+    }
+
+    // Xóa loại
+    await pool.query("DELETE FROM categories WHERE id = ?", [id])
+
+    res.json({
+      message: "🗑️ Đã xóa loại sản phẩm thành công",
+      deleted: exists[0],
+    })
+  } catch (error) {
+    console.error("❌ Lỗi khi xóa loại sản phẩm:", error)
     res.status(500).json({ error: "Lỗi máy chủ" })
   }
 })
@@ -228,6 +317,43 @@ router.get("/:id", async (req, res) => {
     res.json({ ...product, history })
   } catch (error) {
     console.error("❌ Lỗi khi lấy chi tiết sản phẩm:", error)
+    res.status(500).json({ error: "Lỗi máy chủ" })
+  }
+})
+
+// Tạo loại sản phẩm mới (chỉ admin)
+router.post("/categories", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { name } = req.body
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ error: "Tên loại sản phẩm không được để trống" })
+    }
+
+    // Kiểm tra loại đã tồn tại chưa
+    const [exists] = await pool.query("SELECT id FROM categories WHERE name = ?", [name.trim()])
+    if (exists.length > 0) {
+      return res.status(400).json({ error: `Loại sản phẩm '${name}' đã tồn tại` })
+    }
+
+    // Thêm loại mới
+    const [result] = await pool.query(
+      "INSERT INTO categories (name) VALUES (?)",
+      [name.trim()]
+    )
+
+    // Trả lại loại mới vừa tạo
+    const [newCat] = await pool.query(
+      "SELECT id, name, created_at FROM categories WHERE id = ?",
+      [result.insertId]
+    )
+
+    res.status(201).json({
+      message: "✅ Đã tạo loại sản phẩm mới thành công",
+      category: newCat[0],
+    })
+  } catch (error) {
+    console.error("❌ Lỗi khi tạo loại sản phẩm:", error)
     res.status(500).json({ error: "Lỗi máy chủ" })
   }
 })
