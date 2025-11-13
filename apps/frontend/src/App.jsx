@@ -15,6 +15,7 @@ import Alerts from "./pages/user/Alerts"
 import Compare from "./pages/user/Compare"
 import Community from "./pages/user/Community"
 import Profile from "./pages/user/Profile"
+import PriceMap from "./pages/user/PriceMap"
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard"
@@ -92,7 +93,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/map"
+          element={
+            <ProtectedRoute>
+              <PriceMap />
+            </ProtectedRoute>
+          }
+        />
         {/* Admin routes */}
         <Route
           path="/admin"

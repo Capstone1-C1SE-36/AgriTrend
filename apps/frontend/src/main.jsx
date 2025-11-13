@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client"
 import { BrowserRouter } from "react-router-dom"
 import App from "./App"
 import "../styles/globals.css"
+import 'leaflet/dist/leaflet.css'
 import { ThemeProvider } from "./components/theme-provider"
 import { ClerkProvider } from "@clerk/clerk-react"
 

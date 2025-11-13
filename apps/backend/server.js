@@ -11,7 +11,7 @@ import * as cron from "node-cron";
 import nodemailer from "nodemailer";
 import costRoutes from "./routes/costs.js";
 import pool from "./db.js";
-
+import chatbotRoutes from "./routes/chatbot.js";
 // Import routes
 import authRoutes from "./routes/auth.js";
 import productRoutes, { ioRef } from "./routes/products.js";
@@ -47,6 +47,7 @@ app.use("/api/community", communityRoutes);
 app.use("/api/favorites", favoritesRouter);
 app.use("/api/costs", costRoutes);
 app.use("/api/test", testRoutes);
+app.use("/api/chatbot", chatbotRoutes);
 
 io.on("connection", async (socket) => {
   console.log("✅ Client connected:", socket.id);
