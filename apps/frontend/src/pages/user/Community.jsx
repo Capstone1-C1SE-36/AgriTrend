@@ -1,109 +1,184 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { ArrowLeft, MessageCircle, ThumbsUp, Send } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { Link } from "react-router-dom"
-import api from "@/lib/api"
-import PostCard from "@/components/PostCard"
+import { useState, useEffect } from "react";
+import { Send, Search, Filter, PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Link } from "react-router-dom";
+import api from "@/lib/api";
+import PostCard from "@/components/PostCard";
+import Navbar from "@/components/Navbar";
+import { io } from "socket.io-client";
+import { useAuth } from "../../context/AuthContext";
+// import { socket } from "@/socket"
+const socket = io(import.meta.env.VITE_API_URL);
 
 export default function Community() {
-  const [posts, setPosts] = useState([])
-  const [newPost, setNewPost] = useState("")
-  const [tags, setTags] = useState("")
-  const [loading, setLoading] = useState(true)
+  const { user } = useAuth();
+  const [posts, setPosts] = useState([]);
+  const [newPost, setNewPost] = useState("");
+  const [tags, setTags] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  const [search, setSearch] = useState("");
+  const [filterMyPosts, setFilterMyPosts] = useState(false);
+
+  const userId = user?.id;
+  const token = localStorage.getItem("token");
+  console.log("🔎 userId:", userId);
+  console.log("🔑 token:", token);
   useEffect(() => {
-    fetchPosts()
-  }, [])
+    fetchPosts();
+  }, [search, filterMyPosts]);
 
+  // ===== LẤY DANH SÁCH BÀI VIẾT =====
   const fetchPosts = async () => {
+    setLoading(true);
     try {
-      const response = await api.get("/community")
-      const sorted = response.data.sort(
-        (a, b) => new Date(b.time) - new Date(a.time)
-      )
-      setPosts(sorted)
-    } catch (error) {
-      console.error("Lỗi khi lấy bài viết:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+      const res = await api.get("/community/posts", {
+        params: {
+          search,
+          limit: 20,
+        },
+      });
 
-  // ✅ Gửi bài viết mới lên backend
+      let list = res.data.data;
+
+      if (filterMyPosts && userId) {
+        list = list.filter((p) => p.user_id == userId);
+      }
+
+      setPosts(list);
+    } catch (err) {
+      console.error("Lỗi lấy posts:", err);
+    }
+    setLoading(false);
+  };
+
+  // ===== ĐĂNG BÀI =====
   const handlePost = async () => {
-    if (!newPost.trim()) return
+    if (!newPost.trim()) return;
+
     try {
-      const token = localStorage.getItem("token")
       const tagList = tags
         .split(",")
-        .map(tag => tag.trim())
-        .filter(tag => tag.length > 0)
+        .map((t) => t.trim())
+        .filter((t) => t.length);
+
       const res = await api.post(
-        "/community",
+        "/community/posts",
         { content: newPost, tags: tagList },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
-      )
-      setPosts([res.data, ...posts])
-      setNewPost("")
-      setTags("")
-    } catch (error) {
-      console.error("Lỗi đăng bài:", error)
+      );
+
+      setPosts([res.data.data, ...posts]);
+      setNewPost("");
+      setTags("");
+    } catch (err) {
+      console.error("Lỗi đăng bài:", err);
     }
-  }
+  };
+
+  // ===== SOCKET REALTIME =====
+  useEffect(() => {
+    socket.on("community:new_post", (post) => {
+      setPosts((old) => [post, ...old]);
+    });
+
+    socket.on("community:post_deleted", (data) => {
+      setPosts((old) => old.filter((p) => p.id !== data.id));
+    });
+
+    socket.on("community:post_updated", (post) => {
+      setPosts((old) => old.map((p) => (p.id === post.id ? post : p)));
+    });
+
+    socket.on("community:like", ({ postId }) => {
+      setPosts((old) =>
+        old.map((p) =>
+          p.id === postId ? { ...p, likes: p.likes + 1 } : p
+        )
+      );
+    });
+
+    socket.on("community:unlike", ({ postId }) => {
+      setPosts((old) =>
+        old.map((p) =>
+          p.id === postId ? { ...p, likes: p.likes - 1 } : p
+        )
+      );
+    });
+
+    return () => {
+      socket.off("community:new_post");
+      socket.off("community:post_deleted");
+      socket.off("community:post_updated");
+      socket.off("community:like");
+      socket.off("community:unlike");
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="container mx-auto flex items-center justify-between px-4 py-3">
-          <Link to="/">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <h1 className="text-lg font-semibold">Cộng đồng</h1>
-          <div className="w-10" />
-        </div>
-      </header>
+    <div className="min-h-screen bg-background pb-24">
+      <Navbar />
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Ô đăng bài */}
+        {/* THANH TÌM KIẾM */}
+        <div className="flex gap-3">
+          <div className="flex w-full border rounded-lg overflow-hidden">
+            <input
+              type="text"
+              placeholder="Tìm kiếm bài viết..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 px-3 py-2 outline-none"
+            />
+            <button className="px-3 text-gray-600">
+              <Search className="h-5 w-5" />
+            </button>
+          </div>
+
+          <Button
+            variant={filterMyPosts ? "default" : "outline"}
+            onClick={() => setFilterMyPosts(!filterMyPosts)}
+          >
+            <Filter className="h-4 w-4 mr-2" /> Bài của tôi
+          </Button>
+        </div>
+
+        {/* Ô ĐĂNG BÀI */}
         <Card>
           <CardContent className="pt-6">
             <div className="space-y-3">
               <Textarea
-                placeholder="Chia sẻ suy nghĩ của bạn..."
+                placeholder="Bạn muốn chia sẻ điều gì?"
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
-                rows={3}
               />
+
               <input
                 type="text"
-                placeholder="Thêm thẻ (phân cách bằng dấu phẩy, ví dụ: Lúa gạo, Tư vấn)"
+                placeholder="Thẻ bài viết (VD: nông sản, tư vấn...)"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
-                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border rounded-md"
               />
+
               <div className="flex justify-end">
                 <Button onClick={handlePost}>
-                  <Send className="h-4 w-4 mr-2" />
-                  Đăng bài
+                  <PlusCircle className="h-4 w-4 mr-2" /> Đăng bài
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* DANH SÁCH BÀI */}
         {loading ? (
-          <div className="text-center py-10 text-gray-500">Đang tải bài viết...</div>
+          <p className="text-center py-6">Đang tải...</p>
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
@@ -113,5 +188,5 @@ export default function Community() {
         )}
       </main>
     </div>
-  )
+  );
 }

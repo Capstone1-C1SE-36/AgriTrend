@@ -42,7 +42,7 @@ function generateAnalysis(product, stats, history, news) {
     } else {
       analysisPoints.push("Giá đang đi <b>sát</b> mức trung bình 30 ngày.");
     }
-    
+
     // So với đỉnh/đáy
     if (currentPrice >= high_30d * 0.98) { // Gần đỉnh
       analysisPoints.push("Giá đang <b>áp sát mức cao nhất</b> trong 30 ngày qua.");
@@ -58,7 +58,7 @@ function generateAnalysis(product, stats, history, news) {
   if (history && history.length >= 2) {
     const lastSMA = history[history.length - 1]?.forecast;
     const prevSMA = history[history.length - 2]?.forecast;
-    
+
     if (lastSMA && prevSMA) {
       if (lastSMA > prevSMA) {
         analysisPoints.push("Phân tích kỹ thuật (SMA) cho thấy xu hướng ngắn hạn <b>đang tăng</b>.");
@@ -186,7 +186,7 @@ router.get("/all", async (req, res) => {
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       ORDER BY p.id DESC
-    `) 
+    `)
     const products = rows.map(p => ({
       ...p,
       category: p.category_name,
@@ -216,24 +216,24 @@ router.get("/map-data", async (req, res) => {
         AND p.region != 'Toàn quốc' 
         AND p.currentPrice > 0
     `);
-    
+
     const mapData = rows.map(p => ({
       ...p,
       currentPrice: Number(p.currentPrice),
       regionKey: p.region.toLowerCase()
-          .replace(/tỉnh /g, "")
-          .replace(/thành phố /g, "")
-          .replace(/tp. /g, "")
-          .replace(/đ/g, "d")
-          .replace(/ă/g, "a")
-          .replace(/â/g, "a")
-          .replace(/ê/g, "e")
-          .replace(/ô/g, "o")
-          .replace(/ơ/g, "o")
-          .replace(/ư/g, "u")
-          .trim()
+        .replace(/tỉnh /g, "")
+        .replace(/thành phố /g, "")
+        .replace(/tp. /g, "")
+        .replace(/đ/g, "d")
+        .replace(/ă/g, "a")
+        .replace(/â/g, "a")
+        .replace(/ê/g, "e")
+        .replace(/ô/g, "o")
+        .replace(/ơ/g, "o")
+        .replace(/ư/g, "u")
+        .trim()
     }));
-    
+
     res.json(mapData);
   } catch (error) {
     console.error("❌ Lỗi khi lấy dữ liệu bản đồ:", error);
@@ -249,6 +249,20 @@ router.get("/categories", async (req, res) => {
       FROM categories c
       INNER JOIN products p ON p.category_id = c.id
       ORDER BY c.name ASC
+    `);
+    res.json(rows)
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy danh sách loại:", error);
+    res.status(500).json({ error: "Lỗi máy chủ" });
+  }
+});
+
+router.get("/categorie", async (req, res) => {
+  try {
+    // Sửa lỗi: Chỉ lấy các category CÓ SẢN PHẨM
+    const [rows] = await pool.query(`
+      SELECT DISTINCT c.id, c.name
+      FROM categories c
     `);
     res.json(rows)
   } catch (error) {
@@ -376,7 +390,7 @@ router.get("/:id", async (req, res) => {
   try {
     const range = req.query.range || "30d"
     const productId = req.params.id
-    
+
     // 1. Lấy thông tin sản phẩm
     const productPromise = pool.query(
       `
@@ -389,7 +403,7 @@ router.get("/:id", async (req, res) => {
       `,
       [productId]
     )
-    
+
     // 2. Lấy lịch sử giá cho BIỂU ĐỒ
     let historyQuery = ""
     const params = [productId]
@@ -407,7 +421,7 @@ router.get("/:id", async (req, res) => {
       if (range === "30d") interval = 30
       if (range === "6m") interval = 180
       if (range === "1y") interval = 365
-      
+
       historyQuery = `
         SELECT DATE(updated_at) AS date, MAX(price) AS price
         FROM price_history
@@ -418,7 +432,7 @@ router.get("/:id", async (req, res) => {
       `
     }
     const historyPromise = pool.query(historyQuery, params)
-    
+
     // 3. Lấy THỐNG KÊ 30 NGÀY
     const statsPromise = pool.query(
       `
@@ -432,21 +446,21 @@ router.get("/:id", async (req, res) => {
       `,
       [productId]
     );
-    
+
     // Chạy 3 truy vấn song song
-    const [ [products], [historyRows], [statsRows] ] = await Promise.all([
+    const [[products], [historyRows], [statsRows]] = await Promise.all([
       productPromise,
       historyPromise,
       statsPromise
     ]);
-    
+
     if (products.length === 0)
       return res.status(404).json({ error: "Không tìm thấy sản phẩm" })
-    
+
     // 4. Xử lý dữ liệu
     const history = historyRows.map(h => ({ ...h, price: Number(h.price) }))
     const historyWithForecast = calculateSMA(history, 7, "price");
-    
+
     const product = {
       ...products[0],
       category: products[0].category_name,
@@ -455,21 +469,21 @@ router.get("/:id", async (req, res) => {
     }
 
     // 5. Lấy Tin tức
-    const productName = products[0].name;
-    const keyword = getNewsKeywords(productName);
-    let newsRows = [];
-    if (keyword) {
-      const [fetchedNews] = await pool.query(
-        `SELECT id, title, url, source, published_at, snippet
-         FROM news_articles
-         WHERE relevance_keywords LIKE ?
-         ORDER BY published_at DESC
-         LIMIT 5`,
-        [`%${keyword}%`]
-      );
-      newsRows = fetchedNews;
-    }
-    
+    // const productName = products[0].name;
+    // const keyword = getNewsKeywords(productName);
+    // let newsRows = [];
+    // if (keyword) {
+    //   const [fetchedNews] = await pool.query(
+    //     `SELECT id, title, url, source, published_at, snippet
+    //      FROM news_articles
+    //      WHERE relevance_keywords LIKE ?
+    //      ORDER BY published_at DESC
+    //      LIMIT 5`,
+    //     [`%${keyword}%`]
+    //   );
+    //   newsRows = fetchedNews;
+    // }
+    let newsRows = []; // ✅ Thêm dòng này
     // 6. 🚀 TẠO PHÂN TÍCH AI (MỚI)
     // Đảm bảo statsRows[0] không bị undefined nếu không có lịch sử
     const stats = statsRows[0] || { high_30d: 0, low_30d: 0, avg_30d: 0 };
@@ -627,22 +641,22 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
 // API SO SÁNH (TỐI ƯU)
 router.post("/compare", async (req, res) => {
   try {
-    const { productIds, range = "30d" } = req.body; 
+    const { productIds, range = "30d" } = req.body;
     if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
       return res.status(400).json({ error: "Cần có một mảng productIds" });
     }
-    
+
     const [products] = await pool.query(
       `SELECT id, name FROM products WHERE id IN (?)`,
       [productIds]
     );
     const nameMap = new Map(products.map(p => [p.id, p.name]));
 
-    let interval = 30; 
+    let interval = 30;
     if (range === "7d") interval = 7;
     if (range === "6m") interval = 180;
     if (range === "1y") interval = 365;
-    
+
     const [historyRows] = await pool.query(
       `
       SELECT 
@@ -658,39 +672,39 @@ router.post("/compare", async (req, res) => {
       [productIds, interval]
     );
 
-    const basePriceMap = new Map(); 
-    const normalizedDataMap = new Map(); 
-    
+    const basePriceMap = new Map();
+    const normalizedDataMap = new Map();
+
     for (const id of productIds) {
       const firstEntry = historyRows.find(h => h.product_id === id);
       if (firstEntry) {
         basePriceMap.set(id, Number(firstEntry.price));
       }
     }
-    
+
     historyRows.forEach(row => {
       const date = new Date(row.date).toLocaleDateString("vi-VN", {
         day: "2-digit",
         month: "2-digit",
       });
-      
+
       if (!normalizedDataMap.has(date)) {
         normalizedDataMap.set(date, { date });
       }
 
       const basePrice = basePriceMap.get(row.product_id);
       const productName = nameMap.get(row.product_id);
-      
+
       if (basePrice && productName && basePrice > 0) { // Thêm kiểm tra basePrice > 0
         const currentPrice = Number(row.price);
         const normalizedValue = (currentPrice / basePrice) * 100;
-        
+
         normalizedDataMap.get(date)[productName] = normalizedValue;
       }
     });
-    
+
     const finalChartData = Array.from(normalizedDataMap.values());
-    
+
     res.json(finalChartData);
 
   } catch (error) {

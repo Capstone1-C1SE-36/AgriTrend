@@ -10,7 +10,7 @@ puppeteer.use(StealthPlugin());
 // =======================
 const COFFEE_REGIONS = [
     { name: "Lâm Đồng", url: "https://giacaphe.com/gia-ca-phe-lam-dong/" },
-    { name: "Đắk Lắk", url: "https://giacaphe.com/gia-ca-phe-dak-lak/" },
+    // { name: "Đắk Lắk", url: "https://giacaphe.com/gia-ca-phe-dak-lak/" },
     { name: "Gia Lai", url: "https://giacaphe.com/gia-ca-phe-gia-lai/" },
     { name: "Đắk Nông", url: "https://giacaphe.com/gia-ca-phe-dak-nong/" },
 ];

@@ -201,7 +201,7 @@ const initDB = async () => {
 `)
     console.log("✅ Bảng 'price_alerts' đã sẵn sàng.")
 
-// Bảng chi phí của người dùng
+    // Bảng chi phí của người dùng
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_costs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -216,7 +216,53 @@ const initDB = async () => {
       )
     `)
     console.log("✅ Bảng 'user_costs' đã sẵn sàng.")
-    
+
+    // Bảng community_posts
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS community_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    content TEXT NOT NULL,
+    tags LONGTEXT,
+    likes INT DEFAULT 0,
+    comments_count INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`)
+    console.log("✅ Bảng 'community_posts' đã sẵn sàng.")
+
+    console.log("✅ Bảng 'community_posts' đã sẵn sàng.")
+
+    // Bảng community_comments
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS community_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`)
+    console.log("✅ Bảng 'community_comments' đã sẵn sàng.")
+
+    // Bảng community_likes
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS community_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    post_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_like (post_id, user_id),
+    FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`)
+    console.log("✅ Bảng 'community_likes' đã sẵn sàng.")
+
+
     console.log("✅ Tất cả bảng & dữ liệu mẫu đã được khởi tạo thành công.")
     return pool
   } catch (error) {

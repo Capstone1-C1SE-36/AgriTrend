@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Link } from "react-router-dom"
 import { io } from "socket.io-client"
 import api from "@/lib/api"
+// import { socket } from "@/socket"
 // Ẩn 'formatDistanceToNow' vì nó không được sử dụng trong code bạn cung cấp
 // import { formatDistanceToNow } from "date-fns" 
 
@@ -17,10 +18,10 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
     const [currentPrice, setCurrentPrice] = useState(item.currentPrice)
     const [previousPrice, setPreviousPrice] = useState(item.previousPrice)
     const [userCost, setUserCost] = useState(item.userCost || 0) // <-- THÊM DÒNG NÀY
-    
+
     const [isUpdating, setIsUpdating] = useState(false)
     const [isFavorite, setIsFavorite] = useState(item.isFavorite)
-    const [product, setProduct] = useState(item) 
+    const [product, setProduct] = useState(item)
 
     useEffect(() => {
         const handleServerUpdate = (data) => {
@@ -41,7 +42,7 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
                     region: data.region ?? prev.region,
                     userCost: data.userCost ?? prev.userCost, // <-- THÊM DÒNG NÀY
                 }))
-                
+
                 // Cập nhật state userCost riêng
                 if (data.userCost !== undefined) {
                     setUserCost(data.userCost);
@@ -98,12 +99,12 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
         <Link to={`/product/${product.id}`} className="block">
             <Card
                 className={`hover:shadow-md transition-all duration-500 ease-in-out cursor-pointer ${isUpdating
-                        ? priceChange > 0
-                            ? "ring-2 ring-green-400/50"
-                            : priceChange < 0
-                                ? "ring-2 ring-red-400/50"
-                                : "ring-2 ring-gray-300/50"
-                        : ""
+                    ? priceChange > 0
+                        ? "ring-2 ring-green-400/50"
+                        : priceChange < 0
+                            ? "ring-2 ring-red-400/50"
+                            : "ring-2 ring-gray-300/50"
+                    : ""
                     }`}
             >
                 <CardContent className="pt-6">
@@ -121,8 +122,8 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
                             >
                                 <Heart
                                     className={`h-5 w-5 transition-colors duration-200 ${isFavorite
-                                            ? "fill-red-500 text-red-500"
-                                            : "text-gray-400 hover:text-red-400"
+                                        ? "fill-red-500 text-red-500"
+                                        : "text-gray-400 hover:text-red-400"
                                         }`}
                                 />
                             </Button>
@@ -132,12 +133,12 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
                             <div className="flex items-baseline gap-2">
                                 <span
                                     className={`text-2xl font-bold transition-all duration-500 ${isUpdating
-                                            ? priceChange > 0
-                                                ? "scale-110 text-green-600"
-                                                : priceChange < 0
-                                                    ? "scale-110 text-red-600"
-                                                    : "text-gray-900"
-                                            : "text-gray-900"
+                                        ? priceChange > 0
+                                            ? "scale-110 text-green-600"
+                                            : priceChange < 0
+                                                ? "scale-110 text-red-600"
+                                                : "text-gray-900"
+                                        : "text-gray-900"
                                         }`}
                                 >
                                     {currentPrice.toLocaleString("vi-VN")}
@@ -156,14 +157,13 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
                         </div>
 
                         {hasUserCost && (
-                            <div 
-                                className={`flex items-center p-2 rounded-md ${
-                                profit > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                                }`}
+                            <div
+                                className={`flex items-center p-2 rounded-md ${profit > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                    }`}
                             >
                                 <Coins size={16} className="mr-2 flex-shrink-0" />
                                 <span className="text-sm font-medium">
-                                Lợi nhuận: {profit.toLocaleString()} đ/{product.unit}
+                                    Lợi nhuận: {profit.toLocaleString()} đ/{product.unit}
                                 </span>
                             </div>
                         )}
@@ -183,7 +183,7 @@ export default function PriceCard({ item, onCreateAlert, showAlertButton = false
                                 })}
                             </span>
                         </div>
-                        
+
                         {/* Chỉ hiện nút nếu showAlertButton = true */}
                         {showAlertButton && (
                             <Button

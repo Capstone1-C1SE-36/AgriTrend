@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { io } from "socket.io-client"
 import { Activity } from "lucide-react"
 import api from "../lib/api"
-
+// import { socket } from "@/socket"
 export default function LivePriceTicker() {
     const [items, setItems] = useState([])
 

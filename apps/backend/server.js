@@ -35,6 +35,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.set("io", io);
 ioRef.io = io; // Cho phép emit từ router
 
 // Routes
@@ -51,6 +52,9 @@ app.use("/api/chatbot", chatbotRoutes);
 
 io.on("connection", async (socket) => {
   console.log("✅ Client connected:", socket.id);
+  socket.onAny((event, data) => {
+    console.log("📥 nhận event bất kỳ hihihi:", event, data);
+  });
   try {
     const [rows] = await pool.query(`
       SELECT p.*, c.name AS category_name
@@ -237,7 +241,7 @@ function removeDuplicateRows(arr) {
 
 // ⏱️ Cron chạy mỗi 5 phút, delay 1 phút để tránh trùng
 setTimeout(() => {
-  cron.schedule("*/5 * * * *", async () => {
+  cron.schedule("0 */8 * * *", async () => {
     await checkAndScrapeIfNeeded();
   });
   console.log("⏱️ Cron kiểm tra dữ liệu đã bật (chạy mỗi 5 phút).");

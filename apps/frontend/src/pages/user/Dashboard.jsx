@@ -10,7 +10,7 @@ import api from "@/lib/api"
 import LivePriceTicker from "@/components/live-price-ticker.jsx"
 import PriceCard from "@/components/PriceCard"
 import { io } from "socket.io-client"
-
+// import { socket } from "@/socket"
 const socket = io("http://localhost:5000") //
 
 export default function Dashboard() {
@@ -34,6 +34,9 @@ export default function Dashboard() {
   useEffect(() => {
     fetchProducts()
     fetchCategories()
+    // socket.onAny((event, data) => {
+    //   console.log("📥 nhận event bất kỳ:", event, data);
+    // });
 
     socket.on("productAdded", (newProduct) => {
       setProducts((prev) => [...prev, newProduct])
@@ -65,16 +68,16 @@ export default function Dashboard() {
 
       const token = localStorage.getItem("token")
       let favoriteIds = []
-      let userCosts = new Map() 
+      let userCosts = new Map()
 
       if (token) {
         try {
           const [favResponse, costResponse] = await Promise.all([
             api.get("/favorites"), //
             // --- SỬA LỖI Ở ĐÂY: Bỏ "/api" ---
-            api.get("/costs") 
+            api.get("/costs")
           ]);
-          
+
           favoriteIds = favResponse.data.map(f => f.productId)
 
           costResponse.data.forEach(c => {
@@ -88,13 +91,13 @@ export default function Dashboard() {
 
       const merged = data.map(p => {
         const productId = p.id || p.productId;
-        const userCost = userCosts.get(productId) || 0; 
+        const userCost = userCosts.get(productId) || 0;
 
         return {
           ...p,
           id: productId,
           isFavorite: favoriteIds.includes(productId),
-          userCost: userCost, 
+          userCost: userCost,
         };
       });
 

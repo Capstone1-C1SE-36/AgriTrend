@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, Package, Layers } from "lucide-react"
 import { io } from "socket.io-client"
 import AdminNavbar from "../../components/AdminNavbar"
 import api from "../../lib/api"
+// import { socket } from "@/socket"
 
 export default function AdminProducts() {
   const [mode, setMode] = useState("products") // 🧩 "products" | "categories"

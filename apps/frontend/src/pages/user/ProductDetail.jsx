@@ -55,15 +55,15 @@ function AnalysisCard({ analysis }) {
   if (!analysis || !analysis.summary) return null;
 
   // Xác định màu dựa trên tâm lý
-  const sentimentColor = 
+  const sentimentColor =
     analysis.sentiment.includes("Tích cực") ? "text-green-700"
-    : analysis.sentiment.includes("Tiêu cực") ? "text-red-700"
-    : "text-gray-700";
-  
-  const sentimentBgColor = 
+      : analysis.sentiment.includes("Tiêu cực") ? "text-red-700"
+        : "text-gray-700";
+
+  const sentimentBgColor =
     analysis.sentiment.includes("Tích cực") ? "bg-green-100/80 border-green-200"
-    : analysis.sentiment.includes("Tiêu cực") ? "bg-red-100/80 border-red-200"
-    : "bg-gray-100/80 border-gray-200";
+      : analysis.sentiment.includes("Tiêu cực") ? "bg-red-100/80 border-red-200"
+        : "bg-gray-100/80 border-gray-200";
 
   return (
     <Card className={cn("shadow-md", sentimentBgColor)}>
@@ -75,9 +75,9 @@ function AnalysisCard({ analysis }) {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Hiển thị văn bản (dùng dangerouslySetInnerHTML để nhận <b>) */}
-        <p 
+        <p
           className="text-sm leading-relaxed text-gray-800"
-          dangerouslySetInnerHTML={{ __html: analysis.summary }} 
+          dangerouslySetInnerHTML={{ __html: analysis.summary }}
         />
         <div className="flex justify-between items-center pt-3 border-t">
           <span className="text-sm font-medium text-gray-900">Tâm lý thị trường:</span>
@@ -98,7 +98,7 @@ export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  
+
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -119,7 +119,7 @@ export default function ProductDetail() {
         const res = await api.get(`/products/${id}`, {
           params: { range },
         })
-        
+
         const formattedHistory = res.data.history.map(item => ({
           ...item,
           date: new Date(item.date).toLocaleDateString("vi-VN", {
@@ -129,12 +129,12 @@ export default function ProductDetail() {
           price: parseFloat(item.price),
           forecast: item.forecast ? parseFloat(item.forecast) : null,
         }));
-        
+
         setProduct({
-            ...res.data,
-            history: formattedHistory,
+          ...res.data,
+          history: formattedHistory,
         });
-        
+
         setAlertPrice(Math.round(res.data.currentPrice / 1000) * 1000);
 
       } catch (err) {
@@ -160,10 +160,10 @@ export default function ProductDetail() {
         product_id: id,
         target_price: Number(alertPrice),
         alert_condition: alertCondition,
-        email: user.email 
+        email: user.email
       });
       setAlertSaving(false);
-      setIsAlertModalOpen(false); 
+      setIsAlertModalOpen(false);
       alert("Đã tạo cảnh báo thành công!");
     } catch (err) {
       console.error("Lỗi khi tạo cảnh báo:", err);
@@ -180,9 +180,9 @@ export default function ProductDetail() {
       setAlertError(null);
       // Đảm bảo product không null trước khi truy cập
       if (product) {
-        setAlertPrice(Math.round(product.currentPrice / 1000) * 1000); 
+        setAlertPrice(Math.round(product.currentPrice / 1000) * 1000);
       }
-      setAlertCondition("above"); 
+      setAlertCondition("above");
       setIsAlertModalOpen(true);
     }
   };
@@ -319,13 +319,12 @@ export default function ProductDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Xu hướng</p>
                     <div
-                      className={`flex items-center text-lg font-semibold ${
-                        trend === "up"
+                      className={`flex items-center text-lg font-semibold ${trend === "up"
                           ? "text-green-600"
                           : trend === "down"
-                          ? "text-red-600"
-                          : "text-gray-500"
-                      }`}
+                            ? "text-red-600"
+                            : "text-gray-500"
+                        }`}
                     >
                       {trend === "up" ? (
                         <TrendingUp className="mr-2 h-5 w-5" />
@@ -337,8 +336,8 @@ export default function ProductDetail() {
                       {trend === "up"
                         ? "Tăng"
                         : trend === "down"
-                        ? "Giảm"
-                        : "Ổn định"}
+                          ? "Giảm"
+                          : "Ổn định"}
                     </div>
                   </div>
                   <div>
@@ -426,10 +425,10 @@ export default function ProductDetail() {
             {/* Card Tạo cảnh báo */}
             <Card>
               <CardContent className="pt-6">
-                <Button 
-                  className="w-full" 
+                <Button
+                  className="w-full"
                   size="lg"
-                  onClick={handleAlertButtonClick} 
+                  onClick={handleAlertButtonClick}
                 >
                   🔔 Tạo cảnh báo giá
                 </Button>
