@@ -89,7 +89,7 @@ export default function PostCard({ post, onDelete, onUpdate }) {
                         </div>
 
                         {/* ⭐ ICON 3 CHẤM - chỉ hiện nếu là bài của user */}
-                        {post.user_id === user.id && (
+                        {(post.user_id === user.id || user.role === "admin") && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button className="p-2 rounded-full hover:bg-accent">

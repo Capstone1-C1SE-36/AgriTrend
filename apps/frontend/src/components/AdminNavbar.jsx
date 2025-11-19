@@ -7,6 +7,7 @@ import { useState } from "react"
 
 export default function AdminNavbar() {
   const { user, logout } = useAuth()
+  console.log("👤 Thông tin user hiện tại:", user)
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -43,9 +44,8 @@ export default function AdminNavbar() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-2 transition-colors ${
-                  isActive(item.path) ? "text-green-400" : "text-gray-300 hover:text-white"
-                }`}
+                className={`flex items-center gap-2 transition-colors ${isActive(item.path) ? "text-green-400" : "text-gray-300 hover:text-white"
+                  }`}
               >
                 <item.icon className="w-5 h-5" />
                 <span>{item.label}</span>
