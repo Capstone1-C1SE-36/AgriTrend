@@ -10,6 +10,7 @@ import { useAuth } from "../context/AuthContext"
 import CommentModal from "@/components/CommentModal";
 import { MoreVertical } from "lucide-react"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
+import { motion } from "framer-motion";
 import EditPostModal from "@/components/EditPostModal";
 
 

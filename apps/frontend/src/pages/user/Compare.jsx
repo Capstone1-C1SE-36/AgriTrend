@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Navbar from "@/components/Navbar"
 import api from "@/lib/api"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -11,36 +11,48 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, X, BarChartHorizontal } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Loader2, X, BarChartHorizontal, TrendingUp, DollarSign, Activity, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
-} from "recharts" //
+} from "recharts"
 
-
-const COLORS = ["#16a34a", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
+// Bảng màu Vivid (Rực rỡ) để nổi bật trên nền Earth
+const COLORS = [
+  { stroke: "#10b981", fill: "#10b981" }, // Emerald (Xanh ngọc)
+  { stroke: "#f59e0b", fill: "#f59e0b" }, // Amber (Hổ phách)
+  { stroke: "#3b82f6", fill: "#3b82f6" }, // Blue (Xanh biển)
+  { stroke: "#ef4444", fill: "#ef4444" }, // Red (Đỏ)
+  { stroke: "#8b5cf6", fill: "#8b5cf6" }, // Violet (Tím)
+];
 
 export default function Compare() {
-  const [allProducts, setAllProducts] = useState([]); // Danh sách để chọn
-  const [selectedProducts, setSelectedProducts] = useState([]); // Mảng sản phẩm đã chọn
-  const [chartData, setChartData] = useState([]); // Dữ liệu cho biểu đồ
+  const [allProducts, setAllProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  
+  // Dữ liệu biểu đồ
+  const [growthData, setGrowthData] = useState([]); // Dữ liệu %
+  const [priceData, setPriceData] = useState([]);   // Dữ liệu VNĐ
+  
+  const [viewMode, setViewMode] = useState("growth"); // 'growth' | 'price'
   const [loadingList, setLoadingList] = useState(true);
   const [loadingChart, setLoadingChart] = useState(false);
 
-  // 1. Tải danh sách tất cả sản phẩm (chỉ 1 lần)
+  // 1. Tải danh sách sản phẩm
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const res = await api.get("/products/all"); //
+        const res = await api.get("/products/all");
         setAllProducts(res.data);
       } catch (error) {
-        console.error("Lỗi tải danh sách sản phẩm:", error);
+        console.error("Lỗi tải danh sách:", error);
       } finally {
         setLoadingList(false);
       }
@@ -48,23 +60,52 @@ export default function Compare() {
     fetchAll();
   }, []);
 
-  // 2. Tải dữ liệu biểu đồ (ĐÃ TỐI ƯU)
+  // 2. Xử lý dữ liệu khi danh sách chọn thay đổi
   useEffect(() => {
-    const fetchCompareData = async () => {
-      if (selectedProducts.length === 0) {
-        setChartData([]); // Xóa biểu đồ nếu không chọn gì
-        return;
-      }
+    if (selectedProducts.length === 0) {
+      setGrowthData([]);
+      setPriceData([]);
+      return;
+    }
 
+    const fetchData = async () => {
       setLoadingChart(true);
       try {
-        // --- 🚀 LOGIC MỚI: Chỉ 1 lệnh gọi API ---
+        // A. Lấy dữ liệu Tăng trưởng (Dùng API compare cũ)
         const productIds = selectedProducts.map(p => p.id);
-        const res = await api.post("/products/compare", { productIds }); // Gọi API mới
+        const growthRes = await api.post("/products/compare", { productIds });
+        setGrowthData(growthRes.data);
+
+        // B. Lấy dữ liệu Giá thực (Gọi song song API chi tiết từng sp)
+        // Đây là kỹ thuật "Client-side Merging" để không cần sửa Backend ngay
+        const pricePromises = selectedProducts.map(p => api.get(`/products/${p.id}?range=30d`));
+        const priceResponses = await Promise.all(pricePromises);
+
+        // Trộn dữ liệu giá: { date: "...", "Cà phê": 120000, "Tiêu": 95000 }
+        const mergedPriceData = {};
         
-        // Dữ liệu trả về đã được "trộn" và "chuẩn hóa"
-        setChartData(res.data); 
-        
+        priceResponses.forEach((res, index) => {
+          const product = selectedProducts[index];
+          const history = res.data.history || []; // Giả sử API trả về { history: [...] }
+          
+          history.forEach(point => {
+            // Chuẩn hóa ngày (bỏ giờ phút để group theo ngày)
+            const dateKey = point.date ? new Date(point.date).toLocaleDateString("vi-VN", {day: '2-digit', month: '2-digit'}) : "N/A";
+            
+            if (!mergedPriceData[dateKey]) mergedPriceData[dateKey] = { date: dateKey };
+            mergedPriceData[dateKey][product.name] = point.price;
+          });
+        });
+
+        // Chuyển object thành array và sort theo ngày
+        const finalPriceArray = Object.values(mergedPriceData).sort((a, b) => {
+             const [d1, m1] = a.date.split("/");
+             const [d2, m2] = b.date.split("/");
+             return new Date(2024, m1-1, d1) - new Date(2024, m2-1, d2); // Giả định năm hiện tại
+        });
+
+        setPriceData(finalPriceArray);
+
       } catch (error) {
         console.error("Lỗi tải dữ liệu so sánh:", error);
       } finally {
@@ -72,71 +113,127 @@ export default function Compare() {
       }
     };
 
-    fetchCompareData();
-  }, [selectedProducts]); // Kích hoạt khi danh sách chọn thay đổi
+    fetchData();
+  }, [selectedProducts]);
 
-  // 3. Hàm xử lý khi chọn 1 sản phẩm
   const handleSelectProduct = (productId) => {
-    if (!productId || selectedProducts.length >= 5) return; 
-    
+    if (!productId || selectedProducts.length >= 5) return;
     if (selectedProducts.find(p => p.id === productId)) return;
-
     const productToAdd = allProducts.find(p => p.id === productId);
-    if (productToAdd) {
-      setSelectedProducts([...selectedProducts, productToAdd]);
-    }
+    if (productToAdd) setSelectedProducts([...selectedProducts, productToAdd]);
   };
 
-  // 4. Hàm xử lý khi xóa 1 sản phẩm
   const handleRemoveProduct = (productId) => {
     setSelectedProducts(selectedProducts.filter(p => p.id !== productId));
   };
 
+  // Tính toán bảng chỉ số "Đối đầu" (Head-to-Head)
+  const stats = useMemo(() => {
+    if (priceData.length === 0) return {};
+    
+    const result = {};
+    selectedProducts.forEach(p => {
+        // Lấy mảng giá của sản phẩm này từ priceData
+        const prices = priceData
+            .map(row => row[p.name])
+            .filter(val => val !== undefined && val !== null);
+        
+        if (prices.length > 0) {
+            const min = Math.min(...prices);
+            const max = Math.max(...prices);
+            const current = prices[prices.length - 1];
+            const first = prices[0];
+            const growth = first > 0 ? ((current - first) / first) * 100 : 0;
+            
+            // Tính độ biến động (Standard Deviation đơn giản)
+            const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+            const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length;
+            const volatility = Math.sqrt(variance);
+
+            result[p.id] = { min, max, growth, volatility, current };
+        }
+    });
+    return result;
+  }, [priceData, selectedProducts]);
+
   return (
-    <div>
+    <div className="min-h-screen bg-[#fcfaf8]"> {/* Nền Kem Agri-Earth */}
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">So sánh Tăng trưởng</h1>
         
-        <Card className="mb-6">
+        {/* Header & Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <BarChartHorizontal className="w-8 h-8 text-primary" />
+              So sánh Thị trường
+            </h1>
+            <p className="text-gray-500 mt-1">Phân tích chuyên sâu về giá và tốc độ tăng trưởng.</p>
+          </div>
+
+          <Tabs value={viewMode} onValueChange={setViewMode} className="w-full md:w-auto">
+            <TabsList className="grid w-full grid-cols-2 bg-white/50 p-1 border border-gray-200">
+              <TabsTrigger value="growth" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Tăng trưởng (%)
+              </TabsTrigger>
+              <TabsTrigger value="price" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Giá thực (VNĐ)
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        
+        {/* Selection Area */}
+        <Card className="mb-8 border-none shadow-sm bg-white/80 backdrop-blur-sm">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">
-                  Chọn sản phẩm (Tối đa 5)
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  Thêm sản phẩm so sánh (Tối đa 5)
                 </label>
                 <Select
                   onValueChange={handleSelectProduct}
                   disabled={loadingList || selectedProducts.length >= 5}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingList ? "Đang tải danh sách..." : "Thêm sản phẩm để so sánh..."} />
+                  <SelectTrigger className="bg-white border-gray-200 h-11 focus:ring-primary">
+                    <SelectValue placeholder={loadingList ? "Đang tải..." : "Chọn nông sản..."} />
                   </SelectTrigger>
                   <SelectContent>
                     {allProducts.map(p => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.name} ({p.region})
+                        <div className="flex items-center justify-between w-full min-w-[200px]">
+                            <span>{p.name}</span>
+                            <Badge variant="outline" className="ml-2 text-xs font-normal text-gray-500">{p.region}</Badge>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               
-              <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">
-                  Đang so sánh:
+              <div className="flex-[2]">
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  Đang chọn:
                 </label>
-                <div className="flex flex-wrap gap-2 min-h-[40px] items-center">
+                <div className="flex flex-wrap gap-3 min-h-[44px] items-center p-2 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
                   {selectedProducts.length === 0 ? (
-                     <span className="text-sm text-muted-foreground">Chưa chọn sản phẩm nào.</span>
+                     <span className="text-sm text-gray-400 italic flex items-center gap-2">
+                        <ArrowUpRight className="w-4 h-4" /> Chọn sản phẩm bên trái để bắt đầu
+                     </span>
                   ) : (
-                    selectedProducts.map(p => (
-                      <Badge key={p.id} variant="secondary" className="text-base py-1">
+                    selectedProducts.map((p, index) => (
+                      <Badge 
+                        key={p.id} 
+                        className="text-sm py-1.5 pl-3 pr-1 gap-2 bg-white border border-gray-200 text-gray-800 shadow-sm hover:bg-gray-50 transition-all"
+                      >
+                        <span className="w-2 h-2 rounded-full" style={{ background: COLORS[index % COLORS.length].fill }}></span>
                         {p.name}
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-4 w-4 ml-1"
+                          className="h-5 w-5 rounded-full hover:bg-red-100 hover:text-red-600 ml-1"
                           onClick={() => handleRemoveProduct(p.id)}
                         >
                           <X className="h-3 w-3" />
@@ -150,52 +247,168 @@ export default function Compare() {
           </CardContent>
         </Card>
         
-        {/* Biểu đồ (ĐÃ SỬA TRỤC Y VÀ TOOLTIP) */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Biểu đồ so sánh tăng trưởng 30 ngày (Mốc = 100%)</CardTitle>
+        {/* Main Chart */}
+        <Card className="mb-8 border-none shadow-md bg-white overflow-hidden">
+          <CardHeader className="border-b border-gray-100 bg-gray-50/30 pb-4">
+            <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                {viewMode === 'growth' ? (
+                    <>Biểu đồ Tăng trưởng <span className="text-sm font-normal text-gray-500 ml-auto">(Gốc = 100%)</span></>
+                ) : (
+                    <>Biểu đồ Giá cả <span className="text-sm font-normal text-gray-500 ml-auto">(Đơn vị: VNĐ)</span></>
+                )}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="h-[500px] w-full">
+          <CardContent className="h-[500px] w-full pt-6">
             {loadingChart ? (
-              <div className="flex justify-center items-center h-full">
-                <Loader2 className="w-12 h-12 animate-spin" />
+              <div className="flex flex-col justify-center items-center h-full gap-3">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <span className="text-sm text-gray-500">Đang phân tích dữ liệu...</span>
               </div>
-            ) : chartData.length > 0 ? (
+            ) : selectedProducts.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  {/* --- 🚀 SỬA TRỤC Y ĐỂ HIỂN THỊ % --- */}
+                <AreaChart data={viewMode === 'growth' ? growthData : priceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <defs>
+                    {selectedProducts.map((p, index) => (
+                        <linearGradient key={p.id} id={`color${index}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={COLORS[index % COLORS.length].fill} stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor={COLORS[index % COLORS.length].fill} stopOpacity={0}/>
+                        </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#6b7280" 
+                    tick={{fontSize: 12}} 
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
                   <YAxis 
-                    tickFormatter={(value) => `${value.toFixed(0)}%`}
+                    tickFormatter={(value) => viewMode === 'growth' ? `${value.toFixed(0)}%` : `${(value/1000).toFixed(0)}k`}
                     domain={['auto', 'auto']}
+                    stroke="#6b7280"
+                    tick={{fontSize: 12}}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-10}
                   />
-                  {/* --- 🚀 SỬA TOOLTIP ĐỂ HIỂN THỊ % --- */}
                   <Tooltip 
-                    formatter={(value) => `${value.toFixed(2)}%`}
-                    labelFormatter={(label) => `Ngày: ${label}`}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                    formatter={(value) => viewMode === 'growth' ? `${value.toFixed(2)}%` : `${value.toLocaleString()} ₫`}
+                    labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '0.5rem' }}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }}/>
                   {selectedProducts.map((p, index) => (
-                    <Line
+                    <Area
                       key={p.id}
                       type="monotone"
                       dataKey={p.name}
-                      stroke={COLORS[index % COLORS.length]} 
-                      strokeWidth={2}
-                      dot={false}
+                      stroke={COLORS[index % COLORS.length].stroke}
+                      fillOpacity={1}
+                      fill={`url(#color${index})`}
+                      strokeWidth={3}
                     />
                   ))}
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col justify-center items-center h-full text-muted-foreground">
-                <BarChartHorizontal className="w-12 h-12" />
-                <p className="mt-2">Chọn ít nhất một sản phẩm để xem biểu đồ.</p>
+              <div className="flex flex-col justify-center items-center h-full text-gray-400">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <Activity className="w-8 h-8 opacity-50" />
+                </div>
+                <p>Vui lòng chọn sản phẩm để hiển thị biểu đồ</p>
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Head-to-Head Stats Table */}
+        {selectedProducts.length > 0 && !loadingChart && (
+            <div className="grid grid-cols-1 overflow-x-auto">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-secondary" />
+                    Bảng chỉ số "Đối đầu"
+                </h2>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4 w-1/4">Chỉ số so sánh</th>
+                                {selectedProducts.map((p, i) => (
+                                    <th key={p.id} className="px-6 py-4" style={{ color: COLORS[i % COLORS.length].stroke }}>
+                                        {p.name}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {/* Giá hiện tại */}
+                            <tr className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-6 py-4 font-medium text-gray-900">Giá hiện tại</td>
+                                {selectedProducts.map(p => (
+                                    <td key={p.id} className="px-6 py-4 text-lg font-bold">
+                                        {stats[p.id]?.current?.toLocaleString() || "---"} ₫
+                                    </td>
+                                ))}
+                            </tr>
+                            
+                            {/* Tăng trưởng */}
+                            <tr className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-6 py-4 font-medium text-gray-900">Tăng trưởng (30 ngày)</td>
+                                {selectedProducts.map(p => {
+                                    const g = stats[p.id]?.growth || 0;
+                                    return (
+                                        <td key={p.id} className="px-6 py-4">
+                                            <Badge variant={g >= 0 ? "default" : "destructive"} className={g >= 0 ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-200" : "bg-red-100 text-red-700 hover:bg-red-200 border-red-200"}>
+                                                {g >= 0 ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
+                                                {Math.abs(g).toFixed(2)}%
+                                            </Badge>
+                                        </td>
+                                    )
+                                })}
+                            </tr>
+
+                            {/* Cao nhất / Thấp nhất */}
+                            <tr className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-6 py-4 font-medium text-gray-900">Đỉnh / Đáy (30 ngày)</td>
+                                {selectedProducts.map(p => (
+                                    <td key={p.id} className="px-6 py-4 text-gray-600">
+                                        <span className="text-green-600 font-medium">↑ {stats[p.id]?.max?.toLocaleString()}</span>
+                                        <span className="mx-2 text-gray-300">|</span>
+                                        <span className="text-red-500 font-medium">↓ {stats[p.id]?.min?.toLocaleString()}</span>
+                                    </td>
+                                ))}
+                            </tr>
+
+                            {/* Độ ổn định */}
+                            <tr className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-6 py-4 font-medium text-gray-900">Độ biến động giá</td>
+                                {selectedProducts.map(p => {
+                                    const vol = stats[p.id]?.volatility || 0;
+                                    // Giả định: biến động > 2000đ là cao (tùy mặt hàng, đây là logic demo)
+                                    const isStable = vol < 2000; 
+                                    return (
+                                        <td key={p.id} className="px-6 py-4">
+                                            {isStable ? (
+                                                <span className="inline-flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium border border-blue-100">
+                                                    🛡️ Ổn định
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center text-orange-600 bg-orange-50 px-2 py-1 rounded text-xs font-medium border border-orange-100">
+                                                    ⚡ Biến động mạnh
+                                                </span>
+                                            )}
+                                            <div className="text-[10px] text-gray-400 mt-1">Lệch chuẩn: ±{vol.toFixed(0)}đ</div>
+                                        </td>
+                                    )
+                                })}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );

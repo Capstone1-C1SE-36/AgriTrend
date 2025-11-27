@@ -6,47 +6,81 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  --background: oklch(0.99 0.005 120);
-  --foreground: oklch(0.145 0.02 140);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0.02 140);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0.02 140);
-  --primary: oklch(0.52 0.15 145);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.75 0.15 75);
-  --secondary-foreground: oklch(0.145 0.02 140);
-  --muted: oklch(0.97 0.005 120);
-  --muted-foreground: oklch(0.556 0.01 140);
-  --accent: oklch(0.68 0.14 130);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.52 0.15 145);
-  --danger: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.005 120);
-  --input: oklch(0.922 0.005 120);
-  --ring: oklch(0.52 0.15 145);
-  --chart-1: oklch(0.52 0.15 145);
-  --chart-2: oklch(0.75 0.15 75);
-  --chart-3: oklch(0.68 0.14 130);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0.02 140);
-  --sidebar-primary: oklch(0.52 0.15 145);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0.005 120);
-  --sidebar-accent-foreground: oklch(0.145 0.02 140);
-  --sidebar-border: oklch(0.922 0.005 120);
-  --sidebar-ring: oklch(0.52 0.15 145);
+@layer base {
+  :root {
+    --background: hsl(150 30% 98%);
+    --foreground: hsl(160 50% 10%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(160 50% 10%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(160 50% 10%);
+    --primary: hsl(150 70% 40%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(35 90% 55%);
+    --secondary-foreground: hsl(0 0% 100%);
+    --muted: hsl(150 20% 96%);
+    --muted-foreground: hsl(160 10% 40%);
+    --accent: hsl(150 30% 90%);
+    --accent-foreground: hsl(160 50% 10%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(150 20% 90%);
+    --input: hsl(150 20% 90%);
+    --ring: hsl(150 70% 40%);
+    --radius: 1rem;
+    --chart-1: oklch(0.52 0.15 145);
+    --chart-2: oklch(0.75 0.15 75);
+    --chart-3: oklch(0.68 0.14 130);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0.02 140);
+    --sidebar-primary: oklch(0.52 0.15 145);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0.005 120);
+    --sidebar-accent-foreground: oklch(0.145 0.02 140);
+    --sidebar-border: oklch(0.922 0.005 120);
+    --sidebar-ring: oklch(0.52 0.15 145);
+  }
+
+  .dark {
+    --background: hsl(160 50% 5%);
+    --foreground: hsl(150 30% 90%);
+    --card: hsl(160 50% 8%);
+    --card-foreground: hsl(150 30% 90%);
+    --popover: hsl(160 50% 8%);
+    --popover-foreground: hsl(150 30% 90%);
+    --primary: hsl(150 60% 45%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(35 80% 50%);
+    --secondary-foreground: hsl(0 0% 100%);
+    --muted: hsl(160 30% 15%);
+    --muted-foreground: hsl(150 20% 60%);
+    --accent: hsl(160 30% 15%);
+    --accent-foreground: hsl(150 30% 90%);
+    --destructive: hsl(0 62% 30%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(160 30% 15%);
+    --input: hsl(160 30% 15%);
+    --ring: hsl(150 60% 45%);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.269 0 0);
+    --sidebar-ring: oklch(0.439 0 0);
+  }
 }
 
 @theme inline {
   --font-sans: "Inter", system-ui, sans-serif;
-
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -88,24 +122,15 @@
 }
 
 @layer base {
-  * {
-    /* @apply border; */
-    /* Nếu muốn hiệu ứng ring mặc định, chỉ cần: */
-    /* @apply ring; */
-    /* Nếu không cần, có thể bỏ luôn dòng này */
-  }
-
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* Add scrolling animation for live ticker */
 @keyframes scroll {
   0% {
     transform: translateX(0);
   }
-
   100% {
     transform: translateX(-50%);
   }

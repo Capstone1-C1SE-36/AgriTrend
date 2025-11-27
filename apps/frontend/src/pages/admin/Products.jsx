@@ -1,404 +1,190 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Plus, Edit, Trash2, Package, Layers } from "lucide-react"
-import { io } from "socket.io-client"
-import AdminNavbar from "../../components/AdminNavbar"
-import api from "../../lib/api"
-// import { socket } from "@/socket"
+import { useEffect, useState } from "react"
+import AdminNavbar from "@/components/AdminNavbar"
+import api from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { Label } from "@/components/ui/label"
+import { Pencil, Trash2, Plus, Search } from "lucide-react"
+import { useToast } from "@/components/ui/use-toast"
 
 export default function AdminProducts() {
-  const [mode, setMode] = useState("products") // 🧩 "products" | "categories"
   const [products, setProducts] = useState([])
-  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "",
-    currentPrice: "",
-    unit: "kg",
-    region: "",
-  })
-  const [showCategoryModal, setShowCategoryModal] = useState(false)
-  const [newCategory, setNewCategory] = useState("")
-  const [editingCategory, setEditingCategory] = useState(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const { toast } = useToast()
 
-  // =========================
-  // Fetch dữ liệu
-  // =========================
+  // State cho Modal Sửa Giá
+  const [editingProduct, setEditingProduct] = useState(null)
+  const [newPrice, setNewPrice] = useState("")
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
   const fetchProducts = async () => {
     try {
       const res = await api.get("/products/all")
-      const data = res.data.map((p) => ({
-        ...p,
-        currentPrice: Number(p.currentPrice),
-        previousPrice: Number(p.previousPrice || p.currentPrice),
-        trend: "neutral",
-      }))
-      setProducts(data)
-    } catch (e) {
-      console.error("❌ Lỗi lấy sản phẩm:", e)
+      setProducts(res.data)
+    } catch (error) {
+      console.error("Lỗi tải sản phẩm:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchCategories = async () => {
-    try {
-      const res = await api.get("/products/categorie")
-      setCategories(res.data)
-    } catch (e) {
-      console.error("❌ Lỗi lấy loại:", e)
-    }
+  // Mở modal sửa giá
+  const handleEditClick = (product) => {
+    setEditingProduct(product)
+    setNewPrice(product.currentPrice)
   }
 
-  useEffect(() => {
-    fetchProducts()
-    fetchCategories()
-
-    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000")
-    socket.on("priceUpdate", (data) => {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === data.id
-            ? {
-              ...p,
-              previousPrice: p.currentPrice,
-              currentPrice: Number(data.newPrice),
-              trend:
-                Number(data.newPrice) > p.currentPrice
-                  ? "up"
-                  : Number(data.newPrice) < p.currentPrice
-                    ? "down"
-                    : "neutral",
-            }
-            : p
-        )
-      )
-      setTimeout(() => {
-        setProducts((prev) =>
-          prev.map((p) => ({ ...p, trend: "neutral" }))
-        )
-      }, 2000)
-    })
-    return () => socket.disconnect()
-  }, [])
-
-  // =========================
-  // CRUD Sản phẩm
-  // =========================
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  // Gửi API cập nhật giá
+  const handleSavePrice = async () => {
+    if (!editingProduct) return
     try {
-      const payload = {
-        ...formData,
-        currentPrice: Number(formData.currentPrice),
-        previousPrice: Number(editingProduct?.currentPrice || formData.currentPrice),
-      }
-      if (editingProduct) await api.put(`/products/${editingProduct.id}`, payload)
-      else await api.post("/products", payload)
-      fetchProducts()
-      setShowModal(false)
-      resetForm()
+      await api.patch(`/products/${editingProduct.id}/price`, { newPrice: Number(newPrice) })
+      toast({ title: "Thành công", description: "Đã cập nhật giá mới", variant: "default" })
+      
+      // Cập nhật lại list local để đỡ phải gọi API lại
+      setProducts(products.map(p => 
+        p.id === editingProduct.id ? { ...p, currentPrice: Number(newPrice) } : p
+      ))
+      setEditingProduct(null)
     } catch (error) {
-      console.error("❌ Lỗi lưu sản phẩm:", error)
+      toast({ title: "Lỗi", description: "Không thể cập nhật giá", variant: "destructive" })
     }
   }
 
-  const handleDeleteProduct = async (id) => {
-    if (confirm("Xoá sản phẩm này?")) {
+  // Xóa sản phẩm
+  const handleDelete = async (id) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này không?")) return
+    try {
       await api.delete(`/products/${id}`)
-      fetchProducts()
-    }
-  }
-
-  const handleEditProduct = (p) => {
-    setEditingProduct(p)
-    setFormData({
-      name: p.name,
-      category: p.category,
-      currentPrice: p.currentPrice,
-      unit: p.unit,
-      region: p.region,
-    })
-    setShowModal(true)
-  }
-
-  const resetForm = () => {
-    setEditingProduct(null)
-    setFormData({ name: "", category: "", currentPrice: "", unit: "kg", region: "" })
-  }
-
-  // =========================
-  // CRUD Loại sản phẩm
-  // =========================
-  const handleAddCategory = async (e) => {
-    e.preventDefault()
-    if (!newCategory.trim()) return
-    try {
-      if (editingCategory) {
-        await api.put(`/products/categories/${editingCategory.id}`, {
-          name: newCategory.trim(),
-        })
-      } else {
-        await api.post("/products/categories", { name: newCategory.trim() })
-      }
-      fetchCategories()
-      setNewCategory("")
-      setEditingCategory(null)
-      setShowCategoryModal(false)
+      setProducts(products.filter(p => p.id !== id))
+      toast({ title: "Đã xóa", description: "Sản phẩm đã bị xóa khỏi hệ thống" })
     } catch (error) {
-      alert(error.response?.data?.error || "Lỗi khi lưu loại sản phẩm")
+      console.error("Lỗi xóa:", error)
     }
   }
 
-  const handleEditCategory = (cat) => {
-    setEditingCategory(cat)
-    setNewCategory(cat.name)
-    setShowCategoryModal(true)
-  }
+  // Lọc tìm kiếm
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    p.region.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
-  const handleDeleteCategory = async (id) => {
-    if (confirm("Xoá loại này? (chỉ khi không còn sản phẩm thuộc loại này)")) {
-      try {
-        await api.delete(`/products/categories/${id}`)
-        fetchCategories()
-      } catch (error) {
-        alert(error.response?.data?.error || "Không thể xoá loại này")
-      }
-    }
-  }
-
-  // =========================
-  // UI Render
-  // =========================
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#fcfaf8]">
       <AdminNavbar />
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Thanh tiêu đề */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {mode === "products" ? "Quản lý sản phẩm" : "Quản lý loại sản phẩm"}
-          </h1>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setMode("categories")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${mode === "categories"
-                ? "bg-green-600 text-white"
-                : "bg-white border-gray-300 hover:bg-gray-100"
-                }`}
-            >
-              <Layers className="w-5 h-5" /> Loại
-            </button>
-            <button
-              onClick={() => setMode("products")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${mode === "products"
-                ? "bg-green-600 text-white"
-                : "bg-white border-gray-300 hover:bg-gray-100"
-                }`}
-            >
-              <Package className="w-5 h-5" /> Sản phẩm
-            </button>
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        
+        {/* Header & Công cụ */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Quản lý Nông sản</h1>
+            <p className="text-gray-500 text-sm">Danh sách toàn bộ nông sản đang theo dõi</p>
           </div>
-        </div>
-
-        {/* =============== */}
-        {/* BẢNG HIỂN THỊ */}
-        {/* =============== */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-          </div>
-        ) : mode === "products" ? (
-          // ======================= BẢNG SẢN PHẨM =======================
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="flex justify-end p-4">
-              <button
-                onClick={() => {
-                  resetForm()
-                  setShowModal(true)
-                }}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-              >
-                <Plus className="w-5 h-5" /> Thêm sản phẩm
-              </button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input 
+                placeholder="Tìm tên hoặc vùng..." 
+                className="pl-9 bg-white"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Danh mục</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giá</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khu vực</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {products.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-6 py-3">{p.name}</td>
-                    <td className="px-6 py-3">{p.category}</td>
-                    <td
-                      className={`px-6 py-3 font-semibold transition-all duration-500
-                          ${p.trend === "up"
-                          ? "text-green-600 border border-green-400 rounded-lg animate-pulse"
-                          : p.trend === "down"
-                            ? "text-red-600 border border-red-400 rounded-lg animate-pulse"
-                            : "text-gray-900 border-transparent"
-                        }`}
-                    >
-                      {p.currentPrice.toLocaleString("vi-VN")} đ/{p.unit}
-                    </td>
-
-                    <td className="px-6 py-3">{p.region}</td>
-                    <td className="px-6 py-3 text-right flex justify-end gap-2">
-                      <button onClick={() => handleEditProduct(p)} className="text-blue-600 hover:text-blue-800"><Edit className="w-5 h-5" /></button>
-                      <button onClick={() => handleDeleteProduct(p.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-5 h-5" /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Button className="bg-primary hover:bg-primary/90 text-white">
+              <Plus className="w-4 h-4 mr-2" /> Thêm Mới
+            </Button>
           </div>
-        ) : (
-          // ======================= BẢNG LOẠI =======================
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="flex justify-end p-4">
-              <button
-                onClick={() => {
-                  setEditingCategory(null)
-                  setNewCategory("")
-                  setShowCategoryModal(true)
-                }}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-              >
-                <Plus className="w-5 h-5" /> Thêm loại
-              </button>
+        </div>
+
+        {/* Bảng Danh Sách */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <Table>
+            <TableHeader className="bg-gray-50">
+              <TableRow>
+                <TableHead className="w-[300px]">Tên Sản phẩm</TableHead>
+                <TableHead>Khu vực</TableHead>
+                <TableHead>Giá hiện tại</TableHead>
+                <TableHead>Cập nhật cuối</TableHead>
+                <TableHead className="text-right">Hành động</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredProducts.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium text-gray-900">
+                    {product.name}
+                    <div className="text-xs text-gray-400 font-normal">{product.category}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal text-gray-600 bg-gray-50">
+                      {product.region}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-bold text-primary">
+                        {Number(product.currentPrice).toLocaleString()} ₫
+                    </span>
+                    <span className="text-xs text-gray-400 ml-1">/{product.unit}</span>
+                  </TableCell>
+                  <TableCell className="text-xs text-gray-500">
+                    {new Date(product.lastUpdate).toLocaleString('vi-VN')}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(product)}>
+                      <Pencil className="w-4 h-4 text-blue-600" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          
+          {/* State Empty */}
+          {!loading && filteredProducts.length === 0 && (
+            <div className="p-8 text-center text-gray-500">
+              Không tìm thấy sản phẩm nào.
             </div>
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên loại</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {categories.map((c) => (
-                  <tr key={c.id}>
-                    <td className="px-6 py-3">{c.name}</td>
-                    <td className="px-6 py-3 text-right flex justify-end gap-2">
-                      <button onClick={() => handleEditCategory(c)} className="text-blue-600 hover:text-blue-800"><Edit className="w-5 h-5" /></button>
-                      <button onClick={() => handleDeleteCategory(c.id)} className="text-red-600 hover:text-red-800"><Trash2 className="w-5 h-5" /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* MODAL thêm/sửa loại */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingCategory ? "Sửa loại sản phẩm" : "Thêm loại sản phẩm"}
-            </h2>
-            <form onSubmit={handleAddCategory} className="space-y-4">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
-                placeholder="Tên loại..."
-                required
-              />
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => { setShowCategoryModal(false); setNewCategory("") }}
-                  className="flex-1 border border-gray-300 rounded-lg py-2 hover:bg-gray-50"
-                >Hủy</button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg py-2"
-                >{editingCategory ? "Cập nhật" : "Thêm"}</button>
-              </div>
-            </form>
-          </div>
+          )}
         </div>
-      )}
+      </main>
 
-      {/* MODAL thêm/sửa sản phẩm */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">{editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm"}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Tên sản phẩm"
-                required
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
+      {/* Modal Sửa Giá Nhanh */}
+      <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cập nhật giá nhanh</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Sản phẩm</Label>
+              <Input disabled value={editingProduct?.name || ""} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Giá mới (VNĐ)</Label>
+              <Input 
+                type="number" 
+                value={newPrice} 
+                onChange={(e) => setNewPrice(e.target.value)} 
+                autoFocus
               />
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                required
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
-              >
-                <option value="">-- Chọn loại --</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                value={formData.currentPrice}
-                onChange={(e) => setFormData({ ...formData, currentPrice: e.target.value })}
-                placeholder="Giá (vd: 25000)"
-                required
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-              <input
-                type="text"
-                value={formData.unit}
-                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                placeholder="Đơn vị (vd: kg, tấn)"
-                required
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-              <input
-                type="text"
-                value={formData.region}
-                onChange={(e) => setFormData({ ...formData, region: e.target.value })}
-                placeholder="Khu vực (vd: Lâm Đồng)"
-                required
-                className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-green-500"
-              />
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 border border-gray-300 rounded-lg py-2 hover:bg-gray-50"
-                >Hủy</button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-lg py-2"
-                >{editingProduct ? "Cập nhật" : "Thêm"}</button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingProduct(null)}>Hủy</Button>
+            <Button onClick={handleSavePrice}>Lưu thay đổi</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
