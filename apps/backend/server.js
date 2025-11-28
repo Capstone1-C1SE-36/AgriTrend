@@ -20,6 +20,7 @@ import alertRoutes from "./routes/alerts.js";
 import newsRoutes from "./routes/news.js";
 import communityRoutes from "./routes/community.js";
 import favoritesRouter from "./routes/favorites.js";
+import chatRouter from "./routes/chat.js";
 import testRoutes from "./routes/test.js";
 import { syncProducts } from "./cron/syncProducts.js";
 
@@ -49,6 +50,7 @@ app.use("/api/favorites", favoritesRouter);
 app.use("/api/costs", costRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/chat", chatRouter);
 
 io.on("connection", async (socket) => {
   console.log("✅ Client connected:", socket.id);

@@ -262,6 +262,33 @@ const initDB = async () => {
 `)
     console.log("✅ Bảng 'community_likes' đã sẵn sàng.")
 
+    // Bảng lưu session chat
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS conversation_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) DEFAULT 'Cuộc trò chuyện',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )
+`);
+    console.log("✅ Bảng 'conversation_sessions' đã sẵn sàng.");
+
+    // Bảng lưu tin nhắn của AI + User
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS conversation_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id INT NOT NULL,
+    user_id INT,
+    role ENUM('user','assistant','system') NOT NULL,
+    message LONGTEXT NOT NULL,
+    tokens_used INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES conversation_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+  )
+`);
+    console.log("✅ Bảng 'conversation_messages' đã sẵn sàng.");
 
     console.log("✅ Tất cả bảng & dữ liệu mẫu đã được khởi tạo thành công.")
     return pool

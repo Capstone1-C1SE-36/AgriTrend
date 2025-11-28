@@ -1,8 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom"
-import { AuthProvider } from "./context/AuthContext"
+import { AuthProvider, useAuth } from "./context/AuthContext"
 import ProtectedRoute from "./components/ProtectedRoute"
 import AdminRoute from "./components/AdminRoute"
-
 // Auth pages
 import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
@@ -24,139 +23,52 @@ import AdminUsers from "./pages/admin/Users"
 import AdminNews from "./pages/admin/News"
 import AdminStatistics from "./pages/admin/Statistics"
 import AdminSettings from "./pages/admin/Settings"
-
-//chatbot
+// ... import pages như trước
 import ChatBotWidget from "./components/ChatBotWidget"
 
-function App() {
+function AppContent() {
+  const { user } = useAuth()  // ✅ Bây giờ useAuth nằm trong AuthProvider
+  console.log("Current user in AppContent:", user);
+
   return (
-    <AuthProvider>
+    <>
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected user routes */}
-        <Route
-          path="/"
-          element={
-            // <ProtectedRoute>
-            <Dashboard />
-            // </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/product/:id"
-          element={
-            <ProtectedRoute>
-              <ProductDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/favorites"
-          element={
-            <ProtectedRoute>
-              <Favorites />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/alerts"
-          element={
-            <ProtectedRoute>
-              <Alerts />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/compare"
-          element={
-            <ProtectedRoute>
-              <Compare />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/community"
-          element={
-            <ProtectedRoute>
-              <Community />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/map"
-          element={
-            <ProtectedRoute>
-              <PriceMap />
-            </ProtectedRoute>
-          }
-        />
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/product/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
+        <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+        <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+        <Route path="/compare" element={<ProtectedRoute><Compare /></ProtectedRoute>} />
+        <Route path="/community" element={<ProtectedRoute><Community /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/map" element={<ProtectedRoute><PriceMap /></ProtectedRoute>} />
+
         {/* Admin routes */}
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminDashboard />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/products"
-          element={
-            <AdminRoute>
-              <AdminProducts />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <AdminRoute>
-              <AdminUsers />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/news"
-          element={
-            <AdminRoute>
-              <AdminNews />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/statistics"
-          element={
-            <AdminRoute>
-              <AdminStatistics />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/settings"
-          element={
-            <AdminRoute>
-              <AdminSettings />
-            </AdminRoute>
-          }
-        />
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+        <Route path="/admin/news" element={<AdminRoute><AdminNews /></AdminRoute>} />
+        <Route path="/admin/statistics" element={<AdminRoute><AdminStatistics /></AdminRoute>} />
+        <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <ChatBotWidget />
-    </AuthProvider>
+
+      {/* ChatBotWidget chỉ render khi user đã đăng nhập */}
+      {user && <ChatBotWidget userId={user.id} />}
+    </>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  )
+}
