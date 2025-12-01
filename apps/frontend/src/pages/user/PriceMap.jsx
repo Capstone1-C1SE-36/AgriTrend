@@ -8,14 +8,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, MapPin } from "lucide-react" // Thêm icon MapPin
+import { Loader2, MapPin } from "lucide-react" 
 import api from "@/lib/api"
-// Import các component của react-leaflet + useMap để điều khiển zoom
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap } from "react-leaflet"
 
-// ==============================================
-// 1. DỮ LIỆU TỌA ĐỘ (PROVINCE_COORDS)
-// ==============================================
 const PROVINCE_COORDS = {
   // --- Tây Nguyên ---
   "lam dong": [11.575278, 107.809583],
@@ -54,9 +50,6 @@ const PROVINCE_COORDS = {
   "thanh hoa": [19.800000, 105.766667],
 };
 
-// ==============================================
-// 2. DỮ LIỆU ĐẶC SẢN (PROVINCE_SPECIALTIES)
-// ==============================================
 const PROVINCE_SPECIALTIES = {
   // --- Tây Nguyên ---
   "lam dong": ["Cà phê Arabica", "Chè (Trà)", "Rau củ", "Hoa", "Sầu riêng"],
@@ -122,25 +115,20 @@ const getSpecialties = (regionName) => {
   return PROVINCE_SPECIALTIES[key] || [];
 };
 
-// ==============================================
-// 3. COMPONENT TỰ ĐỘNG FOCUS (AUTO-SUGGESTION)
-// ==============================================
 function MapFocus({ selectedCategory, allProducts }) {
   const map = useMap();
 
   useEffect(() => {
     // 1. Tìm các sản phẩm thuộc category đang chọn
     const relevantProducts = allProducts.filter(p => p.category_name === selectedCategory);
-    
     if (relevantProducts.length > 0) {
-      // 2. Lấy tọa độ của sản phẩm đầu tiên hoặc tính trung bình
-      // Ở đây ta lấy vùng đầu tiên tìm thấy làm trọng tâm
+    
       const firstRegion = relevantProducts[0].region;
       const coords = getCoords(firstRegion);
 
       if (coords) {
         // 3. Bay đến đó (FlyTo)
-        map.flyTo(coords, 8, { // Zoom level 8 là vừa đẹp cho vùng
+        map.flyTo(coords, 8, { 
           animate: true,
           duration: 1.5
         });
@@ -154,9 +142,6 @@ function MapFocus({ selectedCategory, allProducts }) {
   return null;
 }
 
-// ==============================================
-// 4. MAIN COMPONENT
-// ==============================================
 export default function PriceMap() {
   const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -244,7 +229,6 @@ export default function PriceMap() {
               style={{ height: '100%', width: '100%' }}
             >
              <TileLayer
-  // Dán Key của bạn vào sau dấu bằng (=)
   url="https://maps.vietmap.vn/tm/{z}/{x}/{y}.png?apikey=fee869017ff637d8ea4ee91826e32e3d427a5d9256b87049" 
   attribution='&copy; <a href="https://vietmap.vn">Vietmap</a> - Bản đồ số Việt Nam'
 />
