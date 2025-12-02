@@ -5,6 +5,8 @@ import AdminRoute from "./components/AdminRoute"
 // Auth pages
 import Login from "./pages/auth/Login"
 import Register from "./pages/auth/Register"
+import ForgotPassword from "./pages/auth/Forgot-Password"
+import ResetPassword from "./pages/auth/Reset-Password"
 
 // User pages
 import Dashboard from "./pages/user/Dashboard"
@@ -36,6 +38,8 @@ function AppContent() {
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

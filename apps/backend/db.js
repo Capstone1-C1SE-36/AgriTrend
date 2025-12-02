@@ -290,6 +290,21 @@ const initDB = async () => {
 `);
     console.log("✅ Bảng 'conversation_messages' đã sẵn sàng.");
 
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    otp VARCHAR(10) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX (user_id),
+    INDEX (expires_at)
+  )
+`);
+    console.log("✅ Bảng 'password_reset_tokens' đã sẵn sàng.");
+
     console.log("✅ Tất cả bảng & dữ liệu mẫu đã được khởi tạo thành công.")
     return pool
   } catch (error) {
