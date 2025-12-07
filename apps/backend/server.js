@@ -22,6 +22,7 @@ import communityRoutes from "./routes/community.js";
 import favoritesRouter from "./routes/favorites.js";
 import chatRouter from "./routes/chat.js";
 import testRoutes from "./routes/test.js";
+import statsRoutes from "./routes/stats.js";
 import { syncProducts } from "./cron/syncProducts.js";
 
 dotenv.config();
@@ -50,6 +51,7 @@ app.use("/api/favorites", favoritesRouter);
 app.use("/api/costs", costRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/chatbot", chatbotRoutes);
+app.use("/api/stats", statsRoutes); 
 app.use("/api/chat", chatRouter);
 
 io.on("connection", async (socket) => {
