@@ -1,5 +1,5 @@
 // ============================
-// 🧩 Đồng bộ dữ liệu sản phẩm (Cà phê + Tiêu) có real-time emit
+// Đồng bộ dữ liệu sản phẩm có real-time emit
 // ============================
 
 import path from "path";
@@ -31,8 +31,11 @@ export async function syncProducts(io) {
         if (!rows.length) continue;
 
         let categoryName = "Cà phê";
-        if (regionObj.name && regionObj.name.toLowerCase().includes("tiêu")) {
+        const lowerName = (regionObj.name || "").toLowerCase();
+        if (lowerName.includes("tiêu")) {
             categoryName = "Tiêu";
+        } else if (lowerName.includes("sầu riêng") || lowerName.includes("durian")) {
+            categoryName = "Sầu riêng";
         }
 
         const [catRows] = await pool.query("SELECT id FROM categories WHERE name = ?", [categoryName]);
@@ -44,7 +47,7 @@ export async function syncProducts(io) {
             console.log(`🆕 Thêm category mới: ${categoryName}`);
         }
 
-        const name = `${categoryName} ${regionName}`;
+        const name = `${regionObj.name}`;
 
         const sortedRows = rows
             .map(r => ({
