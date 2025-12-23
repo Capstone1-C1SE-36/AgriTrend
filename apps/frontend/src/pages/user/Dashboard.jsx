@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { TrendingUp, TrendingDown, Heart, Search } from "lucide-react"
 import Navbar from "@/components/Navbar"
+import Footer from "@/components/Footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -205,6 +206,7 @@ export default function Dashboard() {
           </>
         )}
       </div>
+      <Footer />
     </div>
   )
 }

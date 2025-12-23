@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Navbar from "../../components/Navbar"
+import Footer from "@/components/Footer"
 import { Search, X } from "lucide-react"
 import api from "@/lib/api"
 import PriceCard from "@/components/PriceCard"
@@ -110,9 +111,9 @@ export default function Alerts() {
 
         {/* 🛒 Danh sách sản phẩm */}
         {loading ? (
-          <p>⏳ Đang tải dữ liệu...</p>
+          <p>Đang tải dữ liệu...</p>
         ) : filtered.length === 0 ? (
-          <p>😢 Không tìm thấy sản phẩm nào.</p>
+          <p>Không tìm thấy sản phẩm nào.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((item) => (
@@ -120,7 +121,7 @@ export default function Alerts() {
                 key={item.id}
                 onClick={() => {
                   setSelectedProduct(item);
-                  setTargetPrice(item.currentPrice || ""); // 👈 Gán giá hiện tại
+                  setTargetPrice(item.currentPrice || "");
                 }}
               >
                 <PriceCard
@@ -128,7 +129,7 @@ export default function Alerts() {
                   showAlertButton={true}
                   onCreateAlert={() => {
                     setSelectedProduct(item);
-                    setTargetPrice(item.currentPrice || ""); // 👈 Gán luôn khi nhấn nút trong card
+                    setTargetPrice(item.currentPrice || "");
                   }}
                 />
               </div>
@@ -139,7 +140,7 @@ export default function Alerts() {
 
         {/* 📋 Danh sách cảnh báo của bạn */}
         <div className="mt-10">
-          <h2 className="text-2xl font-bold mb-4">📋 Danh sách cảnh báo của bạn</h2>
+          <h2 className="text-2xl font-bold mb-4">Danh sách cảnh báo của bạn</h2>
 
           {alerts.length === 0 ? (
             <p className="text-gray-500">Bạn chưa tạo cảnh báo nào.</p>
@@ -267,6 +268,7 @@ export default function Alerts() {
           </motion.div>
         )}
       </AnimatePresence>
+      <Footer />
     </div>
   )
 }

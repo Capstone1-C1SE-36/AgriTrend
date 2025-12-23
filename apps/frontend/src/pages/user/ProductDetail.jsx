@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import Navbar from "@/components/Navbar" //
+import Footer from "@/components/Footer" //
 import api from "@/lib/api" //
 import { useAuth } from "@/context/AuthContext" //
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card" //
@@ -320,10 +321,10 @@ export default function ProductDetail() {
                     <p className="text-sm text-muted-foreground">Xu hướng</p>
                     <div
                       className={`flex items-center text-lg font-semibold ${trend === "up"
-                          ? "text-green-600"
-                          : trend === "down"
-                            ? "text-red-600"
-                            : "text-gray-500"
+                        ? "text-green-600"
+                        : trend === "down"
+                          ? "text-red-600"
+                          : "text-gray-500"
                         }`}
                     >
                       {trend === "up" ? (
@@ -493,6 +494,7 @@ export default function ProductDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Footer />
     </div>
   )
 }

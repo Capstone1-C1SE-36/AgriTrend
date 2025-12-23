@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import PostCard from "@/components/PostCard";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { io } from "socket.io-client";
 import { useAuth } from "../../context/AuthContext";
 // import { socket } from "@/socket"
@@ -187,6 +188,7 @@ export default function Community() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import Navbar from "@/components/Navbar"
+import Footer from "@/components/Footer"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
@@ -8,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, MapPin } from "lucide-react" 
+import { Loader2, MapPin } from "lucide-react"
 import api from "@/lib/api"
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Popup, useMap } from "react-leaflet"
 
@@ -19,7 +20,7 @@ const PROVINCE_COORDS = {
   "dak nong": [12.000000, 107.666667],
   "gia lai": [13.983333, 108.250000],
   "kon tum": [14.350000, 108.000000],
-  
+
   // --- Đông Nam Bộ ---
   "dong nai": [11.000000, 107.166667],
   "binh phuoc": [11.750000, 106.916667],
@@ -43,7 +44,7 @@ const PROVINCE_COORDS = {
   "ca mau": [9.183333, 105.150000],
 
   // --- Khu vực khác ---
-  "khanh hoa": [12.250000, 109.183333], 
+  "khanh hoa": [12.250000, 109.183333],
   "binh thuan": [11.100000, 108.183333],
   "ninh thuan": [11.566667, 108.983333],
   "nghe an": [19.250000, 104.883333],
@@ -122,13 +123,13 @@ function MapFocus({ selectedCategory, allProducts }) {
     // 1. Tìm các sản phẩm thuộc category đang chọn
     const relevantProducts = allProducts.filter(p => p.category_name === selectedCategory);
     if (relevantProducts.length > 0) {
-    
+
       const firstRegion = relevantProducts[0].region;
       const coords = getCoords(firstRegion);
 
       if (coords) {
         // 3. Bay đến đó (FlyTo)
-        map.flyTo(coords, 8, { 
+        map.flyTo(coords, 8, {
           animate: true,
           duration: 1.5
         });
@@ -145,7 +146,7 @@ function MapFocus({ selectedCategory, allProducts }) {
 export default function PriceMap() {
   const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("Cà phê"); 
+  const [selectedCategory, setSelectedCategory] = useState("Cà phê");
   const [loading, setLoading] = useState(true);
 
   // Lấy danh sách các tỉnh có trồng loại cây này (để hiển thị gợi ý text)
@@ -161,16 +162,16 @@ export default function PriceMap() {
         const productRes = await api.get("/products/map-data");
         const productData = productRes.data;
 
-        setAllProducts(productData); 
+        setAllProducts(productData);
 
         const uniqueCategories = [...new Set(productData.map(p => p.category_name))];
         setCategories(uniqueCategories);
-        
+
         if (uniqueCategories.length > 0) {
           const defaultCat = uniqueCategories.includes("Cà phê") ? "Cà phê" : uniqueCategories[0];
-          setSelectedCategory(defaultCat); 
+          setSelectedCategory(defaultCat);
         }
-        
+
       } catch (error) {
         console.error("Lỗi tải dữ liệu bản đồ:", error);
       } finally {
@@ -199,10 +200,10 @@ export default function PriceMap() {
             <h1 className="text-3xl font-bold text-gray-900">Bản đồ giá nông sản</h1>
             {/* --- GỢI Ý TEXT --- */}
             {suggestedRegions.length > 0 && (
-               <p className="text-sm text-gray-500 mt-1 flex items-center">
-                 <MapPin className="w-4 h-4 mr-1 text-green-600" />
-                 Trọng điểm {selectedCategory}: <span className="font-medium ml-1 text-gray-700">{suggestedRegions.join(", ")}...</span>
-               </p>
+              <p className="text-sm text-gray-500 mt-1 flex items-center">
+                <MapPin className="w-4 h-4 mr-1 text-green-600" />
+                Trọng điểm {selectedCategory}: <span className="font-medium ml-1 text-gray-700">{suggestedRegions.join(", ")}...</span>
+              </p>
             )}
           </div>
 
@@ -223,15 +224,15 @@ export default function PriceMap() {
         {/* Bản đồ */}
         <Card>
           <CardContent className="pt-6 h-[70vh]">
-            <MapContainer 
-              center={[14.0583, 108.2772]} 
-              zoom={6} 
+            <MapContainer
+              center={[14.0583, 108.2772]}
+              zoom={6}
               style={{ height: '100%', width: '100%' }}
             >
-             <TileLayer
-  url="https://maps.vietmap.vn/tm/{z}/{x}/{y}.png?apikey=fee869017ff637d8ea4ee91826e32e3d427a5d9256b87049" 
-  attribution='&copy; <a href="https://vietmap.vn">Vietmap</a> - Bản đồ số Việt Nam'
-/>
+              <TileLayer
+                url="https://maps.vietmap.vn/tm/{z}/{x}/{y}.png?apikey=fee869017ff637d8ea4ee91826e32e3d427a5d9256b87049"
+                attribution='&copy; <a href="https://vietmap.vn">Vietmap</a> - Bản đồ số Việt Nam'
+              />
               {/* Component xử lý tự động Zoom */}
               <MapFocus selectedCategory={selectedCategory} allProducts={allProducts} />
 
@@ -241,27 +242,27 @@ export default function PriceMap() {
                 .map((product) => {
                   const coords = getCoords(product.region);
                   const specialties = getSpecialties(product.region); // Lấy đặc sản
-                  
-                  if (!coords) return null; 
+
+                  if (!coords) return null;
 
                   return (
-                    <CircleMarker 
+                    <CircleMarker
                       key={product.id}
                       center={coords}
-                      pathOptions={{ 
-                        color: 'white', 
-                        fillColor: '#16a34a', 
-                        fillOpacity: 0.8, 
-                        weight: 2 
+                      pathOptions={{
+                        color: 'white',
+                        fillColor: '#16a34a',
+                        fillOpacity: 0.8,
+                        weight: 2
                       }}
-                      radius={18} 
+                      radius={18}
                     >
                       <Popup>
                         <div className="text-center min-w-[180px]">
                           <h3 className="font-bold text-lg uppercase text-gray-800 border-b pb-1 mb-2">
                             {product.region}
                           </h3>
-                          
+
                           {/* --- HIỂN THỊ ĐẶC SẢN (Dữ liệu mới) --- */}
                           {specialties.length > 0 && (
                             <div className="mb-3 bg-green-50 p-2 rounded text-left">
@@ -276,26 +277,26 @@ export default function PriceMap() {
                           <div className="text-2xl font-bold text-green-600 my-1">
                             {product.currentPrice.toLocaleString("vi-VN")} ₫
                           </div>
-                          <span className={`text-xs px-2 py-1 rounded font-medium ${
-                            product.trend === 'up' ? 'bg-green-100 text-green-700' : 
-                            product.trend === 'down' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {product.trend === 'up' ? '▲ Đang tăng' : 
-                             product.trend === 'down' ? '▼ Đang giảm' : '― Ổn định'}
+                          <span className={`text-xs px-2 py-1 rounded font-medium ${product.trend === 'up' ? 'bg-green-100 text-green-700' :
+                              product.trend === 'down' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                            {product.trend === 'up' ? '▲ Đang tăng' :
+                              product.trend === 'down' ? '▼ Đang giảm' : '― Ổn định'}
                           </span>
                         </div>
                       </Popup>
-                      
+
                       <Tooltip direction="center" permanent className="bg-transparent border-0 shadow-none font-bold text-white text-xs">
-                         {(product.currentPrice / 1000).toFixed(0)}k
+                        {(product.currentPrice / 1000).toFixed(0)}k
                       </Tooltip>
                     </CircleMarker>
                   );
-              })}
+                })}
             </MapContainer>
           </CardContent>
         </Card>
       </div>
+      <Footer />
     </div>
   );
 }

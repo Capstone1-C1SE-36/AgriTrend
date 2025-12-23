@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import Navbar from "@/components/Navbar"
+import Footer from "@/components/Footer"
 import api from "@/lib/api"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import {
@@ -36,11 +37,11 @@ const COLORS = [
 export default function Compare() {
   const [allProducts, setAllProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  
+
   // Dữ liệu biểu đồ
   const [growthData, setGrowthData] = useState([]); // Dữ liệu %
   const [priceData, setPriceData] = useState([]);   // Dữ liệu VNĐ
-  
+
   const [viewMode, setViewMode] = useState("growth"); // 'growth' | 'price'
   const [loadingList, setLoadingList] = useState(true);
   const [loadingChart, setLoadingChart] = useState(false);
@@ -83,15 +84,15 @@ export default function Compare() {
 
         // Trộn dữ liệu giá: { date: "...", "Cà phê": 120000, "Tiêu": 95000 }
         const mergedPriceData = {};
-        
+
         priceResponses.forEach((res, index) => {
           const product = selectedProducts[index];
           const history = res.data.history || []; // Giả sử API trả về { history: [...] }
-          
+
           history.forEach(point => {
             // Chuẩn hóa ngày (bỏ giờ phút để group theo ngày)
-            const dateKey = point.date ? new Date(point.date).toLocaleDateString("vi-VN", {day: '2-digit', month: '2-digit'}) : "N/A";
-            
+            const dateKey = point.date ? new Date(point.date).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit' }) : "N/A";
+
             if (!mergedPriceData[dateKey]) mergedPriceData[dateKey] = { date: dateKey };
             mergedPriceData[dateKey][product.name] = point.price;
           });
@@ -99,9 +100,9 @@ export default function Compare() {
 
         // Chuyển object thành array và sort theo ngày
         const finalPriceArray = Object.values(mergedPriceData).sort((a, b) => {
-             const [d1, m1] = a.date.split("/");
-             const [d2, m2] = b.date.split("/");
-             return new Date(2024, m1-1, d1) - new Date(2024, m2-1, d2); // Giả định năm hiện tại
+          const [d1, m1] = a.date.split("/");
+          const [d2, m2] = b.date.split("/");
+          return new Date(2024, m1 - 1, d1) - new Date(2024, m2 - 1, d2); // Giả định năm hiện tại
         });
 
         setPriceData(finalPriceArray);
@@ -130,28 +131,28 @@ export default function Compare() {
   // Tính toán bảng chỉ số "Đối đầu" (Head-to-Head)
   const stats = useMemo(() => {
     if (priceData.length === 0) return {};
-    
+
     const result = {};
     selectedProducts.forEach(p => {
-        // Lấy mảng giá của sản phẩm này từ priceData
-        const prices = priceData
-            .map(row => row[p.name])
-            .filter(val => val !== undefined && val !== null);
-        
-        if (prices.length > 0) {
-            const min = Math.min(...prices);
-            const max = Math.max(...prices);
-            const current = prices[prices.length - 1];
-            const first = prices[0];
-            const growth = first > 0 ? ((current - first) / first) * 100 : 0;
-            
-            // Tính độ biến động (Standard Deviation đơn giản)
-            const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-            const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length;
-            const volatility = Math.sqrt(variance);
+      // Lấy mảng giá của sản phẩm này từ priceData
+      const prices = priceData
+        .map(row => row[p.name])
+        .filter(val => val !== undefined && val !== null);
 
-            result[p.id] = { min, max, growth, volatility, current };
-        }
+      if (prices.length > 0) {
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        const current = prices[prices.length - 1];
+        const first = prices[0];
+        const growth = first > 0 ? ((current - first) / first) * 100 : 0;
+
+        // Tính độ biến động (Standard Deviation đơn giản)
+        const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+        const variance = prices.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / prices.length;
+        const volatility = Math.sqrt(variance);
+
+        result[p.id] = { min, max, growth, volatility, current };
+      }
     });
     return result;
   }, [priceData, selectedProducts]);
@@ -160,7 +161,7 @@ export default function Compare() {
     <div className="min-h-screen bg-[#fcfaf8]"> {/* Nền Kem Agri-Earth */}
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-8">
-        
+
         {/* Header & Controls */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -184,7 +185,7 @@ export default function Compare() {
             </TabsList>
           </Tabs>
         </div>
-        
+
         {/* Selection Area */}
         <Card className="mb-8 border-none shadow-sm bg-white/80 backdrop-blur-sm">
           <CardContent className="pt-6">
@@ -204,28 +205,28 @@ export default function Compare() {
                     {allProducts.map(p => (
                       <SelectItem key={p.id} value={p.id}>
                         <div className="flex items-center justify-between w-full min-w-[200px]">
-                            <span>{p.name}</span>
-                            <Badge variant="outline" className="ml-2 text-xs font-normal text-gray-500">{p.region}</Badge>
+                          <span>{p.name}</span>
+                          <Badge variant="outline" className="ml-2 text-xs font-normal text-gray-500">{p.region}</Badge>
                         </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="flex-[2]">
                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
                   Đang chọn:
                 </label>
                 <div className="flex flex-wrap gap-3 min-h-[44px] items-center p-2 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
                   {selectedProducts.length === 0 ? (
-                     <span className="text-sm text-gray-400 italic flex items-center gap-2">
-                        <ArrowUpRight className="w-4 h-4" /> Chọn sản phẩm bên trái để bắt đầu
-                     </span>
+                    <span className="text-sm text-gray-400 italic flex items-center gap-2">
+                      <ArrowUpRight className="w-4 h-4" /> Chọn sản phẩm bên trái để bắt đầu
+                    </span>
                   ) : (
                     selectedProducts.map((p, index) => (
-                      <Badge 
-                        key={p.id} 
+                      <Badge
+                        key={p.id}
                         className="text-sm py-1.5 pl-3 pr-1 gap-2 bg-white border border-gray-200 text-gray-800 shadow-sm hover:bg-gray-50 transition-all"
                       >
                         <span className="w-2 h-2 rounded-full" style={{ background: COLORS[index % COLORS.length].fill }}></span>
@@ -246,16 +247,16 @@ export default function Compare() {
             </div>
           </CardContent>
         </Card>
-        
+
         {/* Main Chart */}
         <Card className="mb-8 border-none shadow-md bg-white overflow-hidden">
           <CardHeader className="border-b border-gray-100 bg-gray-50/30 pb-4">
             <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                {viewMode === 'growth' ? (
-                    <>Biểu đồ Tăng trưởng <span className="text-sm font-normal text-gray-500 ml-auto">(Gốc = 100%)</span></>
-                ) : (
-                    <>Biểu đồ Giá cả <span className="text-sm font-normal text-gray-500 ml-auto">(Đơn vị: VNĐ)</span></>
-                )}
+              {viewMode === 'growth' ? (
+                <>Biểu đồ Tăng trưởng <span className="text-sm font-normal text-gray-500 ml-auto">(Gốc = 100%)</span></>
+              ) : (
+                <>Biểu đồ Giá cả <span className="text-sm font-normal text-gray-500 ml-auto">(Đơn vị: VNĐ)</span></>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[500px] w-full pt-6">
@@ -269,36 +270,36 @@ export default function Compare() {
                 <AreaChart data={viewMode === 'growth' ? growthData : priceData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
                     {selectedProducts.map((p, index) => (
-                        <linearGradient key={p.id} id={`color${index}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={COLORS[index % COLORS.length].fill} stopOpacity={0.2}/>
-                            <stop offset="95%" stopColor={COLORS[index % COLORS.length].fill} stopOpacity={0}/>
-                        </linearGradient>
+                      <linearGradient key={p.id} id={`color${index}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={COLORS[index % COLORS.length].fill} stopOpacity={0.2} />
+                        <stop offset="95%" stopColor={COLORS[index % COLORS.length].fill} stopOpacity={0} />
+                      </linearGradient>
                     ))}
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis 
-                    dataKey="date" 
-                    stroke="#6b7280" 
-                    tick={{fontSize: 12}} 
+                  <XAxis
+                    dataKey="date"
+                    stroke="#6b7280"
+                    tick={{ fontSize: 12 }}
                     tickLine={false}
                     axisLine={false}
                     dy={10}
                   />
-                  <YAxis 
-                    tickFormatter={(value) => viewMode === 'growth' ? `${value.toFixed(0)}%` : `${(value/1000).toFixed(0)}k`}
+                  <YAxis
+                    tickFormatter={(value) => viewMode === 'growth' ? `${value.toFixed(0)}%` : `${(value / 1000).toFixed(0)}k`}
                     domain={['auto', 'auto']}
                     stroke="#6b7280"
-                    tick={{fontSize: 12}}
+                    tick={{ fontSize: 12 }}
                     tickLine={false}
                     axisLine={false}
                     dx={-10}
                   />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                     formatter={(value) => viewMode === 'growth' ? `${value.toFixed(2)}%` : `${value.toLocaleString()} ₫`}
                     labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '0.5rem' }}
                   />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }}/>
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
                   {selectedProducts.map((p, index) => (
                     <Area
                       key={p.id}
@@ -315,7 +316,7 @@ export default function Compare() {
             ) : (
               <div className="flex flex-col justify-center items-center h-full text-gray-400">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <Activity className="w-8 h-8 opacity-50" />
+                  <Activity className="w-8 h-8 opacity-50" />
                 </div>
                 <p>Vui lòng chọn sản phẩm để hiển thị biểu đồ</p>
               </div>
@@ -325,91 +326,92 @@ export default function Compare() {
 
         {/* Head-to-Head Stats Table */}
         {selectedProducts.length > 0 && !loadingChart && (
-            <div className="grid grid-cols-1 overflow-x-auto">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-secondary" />
-                    Bảng chỉ số "Đối đầu"
-                </h2>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-4 w-1/4">Chỉ số so sánh</th>
-                                {selectedProducts.map((p, i) => (
-                                    <th key={p.id} className="px-6 py-4" style={{ color: COLORS[i % COLORS.length].stroke }}>
-                                        {p.name}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {/* Giá hiện tại */}
-                            <tr className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-6 py-4 font-medium text-gray-900">Giá hiện tại</td>
-                                {selectedProducts.map(p => (
-                                    <td key={p.id} className="px-6 py-4 text-lg font-bold">
-                                        {stats[p.id]?.current?.toLocaleString() || "---"} ₫
-                                    </td>
-                                ))}
-                            </tr>
-                            
-                            {/* Tăng trưởng */}
-                            <tr className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-6 py-4 font-medium text-gray-900">Tăng trưởng (30 ngày)</td>
-                                {selectedProducts.map(p => {
-                                    const g = stats[p.id]?.growth || 0;
-                                    return (
-                                        <td key={p.id} className="px-6 py-4">
-                                            <Badge variant={g >= 0 ? "default" : "destructive"} className={g >= 0 ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-200" : "bg-red-100 text-red-700 hover:bg-red-200 border-red-200"}>
-                                                {g >= 0 ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
-                                                {Math.abs(g).toFixed(2)}%
-                                            </Badge>
-                                        </td>
-                                    )
-                                })}
-                            </tr>
+          <div className="grid grid-cols-1 overflow-x-auto">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-secondary" />
+              Bảng chỉ số "Đối đầu"
+            </h2>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-4 w-1/4">Chỉ số so sánh</th>
+                    {selectedProducts.map((p, i) => (
+                      <th key={p.id} className="px-6 py-4" style={{ color: COLORS[i % COLORS.length].stroke }}>
+                        {p.name}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {/* Giá hiện tại */}
+                  <tr className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">Giá hiện tại</td>
+                    {selectedProducts.map(p => (
+                      <td key={p.id} className="px-6 py-4 text-lg font-bold">
+                        {stats[p.id]?.current?.toLocaleString() || "---"} ₫
+                      </td>
+                    ))}
+                  </tr>
 
-                            {/* Cao nhất / Thấp nhất */}
-                            <tr className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-6 py-4 font-medium text-gray-900">Đỉnh / Đáy (30 ngày)</td>
-                                {selectedProducts.map(p => (
-                                    <td key={p.id} className="px-6 py-4 text-gray-600">
-                                        <span className="text-green-600 font-medium">↑ {stats[p.id]?.max?.toLocaleString()}</span>
-                                        <span className="mx-2 text-gray-300">|</span>
-                                        <span className="text-red-500 font-medium">↓ {stats[p.id]?.min?.toLocaleString()}</span>
-                                    </td>
-                                ))}
-                            </tr>
+                  {/* Tăng trưởng */}
+                  <tr className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">Tăng trưởng (30 ngày)</td>
+                    {selectedProducts.map(p => {
+                      const g = stats[p.id]?.growth || 0;
+                      return (
+                        <td key={p.id} className="px-6 py-4">
+                          <Badge variant={g >= 0 ? "default" : "destructive"} className={g >= 0 ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-200" : "bg-red-100 text-red-700 hover:bg-red-200 border-red-200"}>
+                            {g >= 0 ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
+                            {Math.abs(g).toFixed(2)}%
+                          </Badge>
+                        </td>
+                      )
+                    })}
+                  </tr>
 
-                            {/* Độ ổn định */}
-                            <tr className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-6 py-4 font-medium text-gray-900">Độ biến động giá</td>
-                                {selectedProducts.map(p => {
-                                    const vol = stats[p.id]?.volatility || 0;
-                                    // Giả định: biến động > 2000đ là cao (tùy mặt hàng, đây là logic demo)
-                                    const isStable = vol < 2000; 
-                                    return (
-                                        <td key={p.id} className="px-6 py-4">
-                                            {isStable ? (
-                                                <span className="inline-flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium border border-blue-100">
-                                                    🛡️ Ổn định
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center text-orange-600 bg-orange-50 px-2 py-1 rounded text-xs font-medium border border-orange-100">
-                                                    ⚡ Biến động mạnh
-                                                </span>
-                                            )}
-                                            <div className="text-[10px] text-gray-400 mt-1">Lệch chuẩn: ±{vol.toFixed(0)}đ</div>
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                  {/* Cao nhất / Thấp nhất */}
+                  <tr className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">Đỉnh / Đáy (30 ngày)</td>
+                    {selectedProducts.map(p => (
+                      <td key={p.id} className="px-6 py-4 text-gray-600">
+                        <span className="text-green-600 font-medium">↑ {stats[p.id]?.max?.toLocaleString()}</span>
+                        <span className="mx-2 text-gray-300">|</span>
+                        <span className="text-red-500 font-medium">↓ {stats[p.id]?.min?.toLocaleString()}</span>
+                      </td>
+                    ))}
+                  </tr>
+
+                  {/* Độ ổn định */}
+                  <tr className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">Độ biến động giá</td>
+                    {selectedProducts.map(p => {
+                      const vol = stats[p.id]?.volatility || 0;
+                      // Giả định: biến động > 2000đ là cao (tùy mặt hàng, đây là logic demo)
+                      const isStable = vol < 2000;
+                      return (
+                        <td key={p.id} className="px-6 py-4">
+                          {isStable ? (
+                            <span className="inline-flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium border border-blue-100">
+                              🛡️ Ổn định
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center text-orange-600 bg-orange-50 px-2 py-1 rounded text-xs font-medium border border-orange-100">
+                              ⚡ Biến động mạnh
+                            </span>
+                          )}
+                          <div className="text-[10px] text-gray-400 mt-1">Lệch chuẩn: ±{vol.toFixed(0)}đ</div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                </tbody>
+              </table>
             </div>
+          </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
