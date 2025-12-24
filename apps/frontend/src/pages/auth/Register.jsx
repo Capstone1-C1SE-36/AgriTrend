@@ -33,7 +33,7 @@ export default function Register() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-green-700">AgriPrice</h1>
+            <h1 className="text-3xl font-bold text-green-700">AgroInsight</h1>
             <p className="text-gray-600 mt-2">Tạo tài khoản mới</p>
           </div>
 

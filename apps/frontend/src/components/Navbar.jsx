@@ -12,7 +12,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { signOut } = useClerk()
-  
+
   const handleLogout = async () => {
     try {
       if (window.Clerk?.session) {
@@ -37,7 +37,7 @@ export default function Navbar() {
               <Sprout className="text-white w-5 h-5" />
             </div>
             <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-green-700 to-emerald-500">
-              AgriTrend
+              AgroInsight
             </span>
           </Link>
 
@@ -71,7 +71,7 @@ export default function Navbar() {
                 <span className="text-sm font-medium text-foreground">{user?.name || user?.email}</span>
               </Link>
             )}
-            
+
             <button
               onClick={handleLogout}
               className="hidden md:flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors hover:bg-red-50 p-2 rounded-full"
@@ -97,7 +97,7 @@ export default function Navbar() {
               <MobileNavLink to="/community" icon={Users} label="Cộng đồng" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/map" icon={Map} label="Bản đồ giá" onClick={() => setMobileMenuOpen(false)} />
               <MobileNavLink to="/profile" icon={User} label="Hồ sơ" onClick={() => setMobileMenuOpen(false)} />
-              
+
               <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg w-full transition-colors">
                 <LogOut className="w-5 h-5" />
                 <span className="font-medium">Đăng xuất</span>

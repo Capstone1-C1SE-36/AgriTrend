@@ -61,7 +61,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-green-700">AgriPrice</h1>
+            <h1 className="text-3xl font-bold text-green-700">AgroInsight</h1>
             <p className="text-gray-600 mt-2">Đăng nhập vào hệ thống</p>
           </div>
 
@@ -152,12 +152,12 @@ export default function Login() {
             </SignInButton>
           </div>
 
-          {/* --- Thông tin tài khoản demo --- */}
+          {/* --- Thông tin tài khoản demo ---
           <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs text-gray-600">
             <p className="font-medium mb-1">Tài khoản demo:</p>
             <p>Admin: admin@agriprice.vn</p>
             <p>User: user@example.com</p>
-          </div>
+          </div> */}
 
           {/* --- Nếu đã đăng nhập Clerk, hiển thị nút logout --- */}
           {isSignedIn && (

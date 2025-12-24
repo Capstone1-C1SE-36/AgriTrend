@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// 🧠 Tự động gắn token vào mọi request
+// Tự động gắn token vào mọi request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -18,7 +18,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 🧩 Tự động logout khi token hết hạn hoặc không hợp lệ
+// Tự động logout khi token hết hạn hoặc không hợp lệ
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -27,7 +27,7 @@ api.interceptors.response.use(
 
     console.error("❌ API response error:", status, message);
 
-    // 🔹 Kiểm tra token hết hạn / không hợp lệ
+    // Kiểm tra token hết hạn / không hợp lệ
     const isTokenError =
       status === 401 ||
       status === 403 ||

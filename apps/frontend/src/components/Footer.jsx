@@ -14,11 +14,11 @@ export default function Footer() {
                                 <Sprout className="w-5 h-5 text-white" />
                             </div>
                             <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-green-700 to-emerald-500">
-                                AgriTrend
+                                AgroInsight
                             </span>
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                            AgriTrend là nền tảng theo dõi giá nông sản, phân tích xu hướng thị trường
+                            AgroInsight là nền tảng theo dõi giá nông sản, phân tích xu hướng thị trường
                             và kết nối cộng đồng nông nghiệp thông minh.
                         </p>
                     </div>
@@ -70,7 +70,7 @@ export default function Footer() {
 
                 {/* Copyright */}
                 <div className="mt-10 border-t border-border/40 pt-6 text-center text-sm text-muted-foreground">
-                    © {new Date().getFullYear()} AgriTrend. All rights reserved.
+                    © {new Date().getFullYear()} AgroInsight. All rights reserved.
                 </div>
             </div>
         </footer>
